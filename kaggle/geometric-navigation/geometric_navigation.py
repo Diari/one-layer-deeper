@@ -15,7 +15,7 @@ import traceback
 
 
 REPOSITORY_URL = "https://github.com/Diari/one-layer-deeper.git"
-GIT_COMMIT = "85a4bce0bd541f28282db356b4d66c5e49972c74"
+GIT_COMMIT = "ee96981d0477314b3c4730bd096644aa1bdb5cfc"
 RUN_BASELINE = True
 RUN_GEOMETRIC = True
 BATCH_SIZE = 64
