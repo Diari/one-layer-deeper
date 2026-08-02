@@ -10,7 +10,7 @@ decimal-token decoder with the evaluator's target positions.
 
 ```bash
 uv run python -m unittest discover -s tests
-uv run python -m unittest tests.test_geometric_navigation
+uv run python -m unittest discover -s tests -p test_geometric_navigation.py -v
 uv run python -m client.cli validate submissions/geometric_navigation/submission.py
 uv run python -m benchmark.runner \
   --manifest experiments/geometric_navigation/configs/smoke_cpu_geometric.json \
@@ -47,6 +47,8 @@ manifest, and a hashed copy of the submission under
 - The landmark bank and circular features are fixed to `N = 323`.
 - Training executes at most the E1 training depths 1--3; evaluation executes a
   fixed 64-step loop with per-example active masking.
-- The architecture has not yet been measured on a Kaggle GPU.
+- The first matched P100 run is recorded in
+  `experiments/geometric_navigation/EXPERIMENT_LOG.md`; it does not establish
+  success on the official H100 competition environment.
 - The full 323-way projection at every active or masked recurrent iteration is
   the expected throughput bottleneck.
