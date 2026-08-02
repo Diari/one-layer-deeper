@@ -237,7 +237,10 @@ def main() -> None:
         )
         stages["repository_tests"] = "passed"
         run(
-            [sys.executable, "-m", "unittest", "tests.test_geometric_navigation", "-v"],
+            [
+                sys.executable, "-m", "unittest", "discover",
+                "-s", "tests", "-p", "test_geometric_navigation.py", "-v",
+            ],
             cwd=REPOSITORY, log=TESTS_LOG, append=True,
         )
         stages["geometric_tests"] = "passed"
