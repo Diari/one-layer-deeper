@@ -7,3 +7,8 @@ logs
 data/generated
 .codex
 user_subs
+kaggle.json
+.env
+artifacts/
+*.zip
+experiments/geometric_navigation/results/latest/

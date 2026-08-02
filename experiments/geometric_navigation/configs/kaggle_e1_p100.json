@@ -1,0 +1,31 @@
+{
+  "data": {
+    "batch_size": 64,
+    "data_root": "data/generated/squaring_mod_new11_easy_bidirectional_fixed_n_323_t123",
+    "drop_last": true,
+    "eval_batch_size": 128,
+    "kind": "squaring_mod",
+    "num_workers": 2,
+    "pin_memory": true,
+    "seed": 45,
+    "shuffle_eval": false,
+    "shuffle_train": true
+  },
+  "model_state": {
+    "maximum_elements": 500000000
+  },
+  "name": "squaring-mod-easy-e1-kaggle-geometric-navigation",
+  "runtime": {
+    "amp": false,
+    "compile": false,
+    "device": "cuda:0",
+    "dtype": "float32",
+    "grad_clip": 1,
+    "log_every": 100,
+    "max_steps": 1000000,
+    "seeds": [
+      74
+    ],
+    "total_training_time_seconds": 300.0
+  }
+}
