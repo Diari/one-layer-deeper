@@ -22,6 +22,8 @@ BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 128
 TRAINING_SECONDS = 300
 SEED = 74
+P100_TORCH_VERSION = "2.10.0+cu126"
+P100_TORCH_INDEX = "https://download.pytorch.org/whl/cu126"
 
 WORKING = Path("/kaggle/working")
 REPOSITORY = WORKING / "one-layer-deeper"
@@ -188,9 +190,45 @@ def main() -> None:
         print(f"Git commit: {resolved}", flush=True)
         stages["checkout"] = "passed"
 
+        # Kaggle currently ships a CUDA 12.8 wheel that omits Pascal (sm_60),
+        # while its P100 accelerator is Pascal.  The official CUDA 12.6 wheel
+        # retains sm_60.  Install it before importing any benchmark modules.
         run(
-            [sys.executable, "-m", "pip", "install", "-e", "."],
+            [
+                sys.executable, "-m", "pip", "install", "--upgrade",
+                "--force-reinstall", f"torch=={P100_TORCH_VERSION}",
+                "--index-url", P100_TORCH_INDEX,
+            ],
             cwd=REPOSITORY, log=TESTS_LOG,
+        )
+        # Kaggle is on Python 3.12, whereas the official evaluator pins 3.13.5.
+        # Installing the source tree without dependency resolution lets this
+        # architecture-validation run use Kaggle's interpreter without changing
+        # the repository metadata or evaluator behavior.
+        run(
+            [
+                sys.executable, "-m", "pip", "install", "-e", ".",
+                "--no-deps", "--ignore-requires-python",
+            ],
+            cwd=REPOSITORY, log=TESTS_LOG, append=True,
+        )
+        run(
+            [
+                sys.executable, "-m", "pip", "install",
+                "jsonargparse==4.49.0", "modal>=1.1.0",
+                "psycopg[binary]>=3.2,<4",
+            ],
+            cwd=REPOSITORY, log=TESTS_LOG, append=True,
+        )
+        # Fail immediately if the replacement wheel cannot execute on the P100.
+        run(
+            [
+                sys.executable, "-c",
+                "import torch; x=torch.ones(1,device='cuda:0'); "
+                "print(torch.__version__, torch.version.cuda, "
+                "torch.cuda.get_device_name(0), (x+x).item())",
+            ],
+            cwd=REPOSITORY, log=TESTS_LOG, append=True,
         )
         stages["dependencies"] = "passed"
         run(
