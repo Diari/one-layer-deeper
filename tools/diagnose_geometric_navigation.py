@@ -13,10 +13,18 @@ from pathlib import Path
 import platform
 import random
 import subprocess
+import sys
 import time
 
 import numpy as np
 import torch
+
+# When this file is executed by path, Python places tools/ rather than the
+# repository root first on sys.path.  Kaggle also preinstalls an unrelated
+# package named benchmark, so make the local package unambiguous.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from benchmark import OptimizerSpec
 from benchmark.batches import prepare_batch
@@ -25,7 +33,6 @@ from benchmark.manifest import load_manifest
 from data import make_dataloaders
 
 
-ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SUBMISSION = ROOT / "submissions/geometric_navigation/submission.py"
 
 
