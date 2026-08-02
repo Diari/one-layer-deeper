@@ -158,8 +158,17 @@ def main() -> None:
     environment = {}
     try:
         print(datetime.now(timezone.utc).isoformat(), flush=True)
-        nvidia = run(["nvidia-smi"])
-        (ARTIFACTS / "nvidia-smi.txt").write_text(nvidia.stdout, encoding="utf-8")
+        nvidia_path = shutil.which("nvidia-smi")
+        if nvidia_path is None:
+            nvidia_output = "nvidia-smi is not available on PATH\n"
+            print(nvidia_output, end="", flush=True)
+            stages["nvidia_smi"] = "unavailable"
+        else:
+            nvidia_output = run([nvidia_path]).stdout
+            stages["nvidia_smi"] = "passed"
+        (ARTIFACTS / "nvidia-smi.txt").write_text(
+            nvidia_output, encoding="utf-8"
+        )
         environment = environment_report()
         (ARTIFACTS / "environment.txt").write_text(
             json.dumps(environment, indent=2, sort_keys=True) + "\n",
