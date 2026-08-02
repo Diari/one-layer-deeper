@@ -14,8 +14,8 @@ import sys
 import traceback
 
 
-REPOSITORY_URL = "https://github.com/USERNAME/one-layer-deeper.git"
-GIT_COMMIT = "REPLACE_WITH_COMMIT_CONTAINING_GEOMETRIC_NAVIGATION"
+REPOSITORY_URL = "https://github.com/Diari/one-layer-deeper.git"
+GIT_COMMIT = "85a4bce0bd541f28282db356b4d66c5e49972c74"
 RUN_BASELINE = True
 RUN_GEOMETRIC = True
 BATCH_SIZE = 64
