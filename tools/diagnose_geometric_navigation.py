@@ -270,7 +270,6 @@ def main() -> None:
     torch.manual_seed(seed)
     if device.type == "cuda":
         torch.cuda.manual_seed_all(seed)
-        torch.cuda.reset_peak_memory_stats(device.index or 0)
 
     module = load_module(args.submission.resolve())
     submission = module.SUBMISSION
@@ -306,7 +305,7 @@ def main() -> None:
         args.max_eval_examples,
     )
     peak_memory = (
-        int(torch.cuda.max_memory_allocated(device.index or 0))
+        int(torch.cuda.max_memory_allocated())
         if device.type == "cuda"
         else 0
     )
