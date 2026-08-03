@@ -149,6 +149,20 @@ same ordered decimal representation.
 encoder with an ordered digit/place encoder. The x encoder, transition,
 decoder, losses, optimizer, and runtime configuration remain unchanged.
 
+The matched D2 P100 result was also negative. `digit_xn` reached 1.00% E5
+test accuracy, compared with 0.92% for the reproduced `digit_x`, 0.83% for
+control, and 10.17% for unchanged full V1. Its +0.08-point change over D1 is
+not material at this sample size, and both seen-N and OOD-N T=1 accuracy
+remained below control. The result rejects ordered N encoding as the missing
+component of the non-geometric baseline. Full V1 remains the score-oriented
+reference, but its poor OOD-N T=1 behavior and prior Recall@64 evidence still
+do not support a top-k toroidal V2.
+
+The next experiment must be defined as another matched single-variable test.
+Two defensible options are a learned modulus-conditioned decoder applied to
+both control and full V1, or a throughput/longer-training test of unchanged
+full V1. Neither is part of D2, and neither result should be inferred from it.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary

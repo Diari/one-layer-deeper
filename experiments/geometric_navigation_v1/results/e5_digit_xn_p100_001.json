@@ -1,0 +1,77 @@
+{
+  "commit": "f6fee3dccfffb93b65e8a3e3c09e94176bd62fef",
+  "dataset": "e5",
+  "gpu": "Tesla P100-PCIE-16GB",
+  "environment": {
+    "python": "3.12.13",
+    "torch": "2.10.0+cu126",
+    "cuda": "12.6",
+    "gpu_memory_bytes": 17059545088
+  },
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300
+  },
+  "gate": {
+    "matched": true,
+    "passed": false,
+    "digit_xn_test_delta_vs_digit_x": 0.0008333333333333335,
+    "digit_xn_test_delta_vs_control": 0.001666666666666667,
+    "digit_xn_test_delta_vs_full": -0.09166666669150194,
+    "seen_t1_improved_vs_control": false,
+    "ood_n_t1_improved_vs_control": false,
+    "repeat_required": false
+  },
+  "runs": {
+    "control": {
+      "test_exact_accuracy": 0.008333333333333333,
+      "ood_exact_accuracy": 0.005,
+      "seen_t1_accuracy": 0.017578125,
+      "ood_n_t1_accuracy": 0.005859375,
+      "optimizer_steps": 13002,
+      "model_state_elements": 1152776,
+      "peak_gpu_memory_bytes": 41183232,
+      "submission_sha256": "59cb8a4d1d7c84606499dc950cd89fcd418cbd59c90a06e334658a108b1e9bea"
+    },
+    "full": {
+      "test_exact_accuracy": 0.10166666669150194,
+      "ood_exact_accuracy": 0.09666666671633721,
+      "seen_t1_accuracy": 0.07421875,
+      "ood_n_t1_accuracy": 0.001953125,
+      "optimizer_steps": 5010,
+      "model_state_elements": 1176073,
+      "peak_gpu_memory_bytes": 1424057344,
+      "submission_sha256": "bb50a6431132689e25e975aeccae4a09cc6447df691b98706aa80aaf3d68b909"
+    },
+    "digit_x": {
+      "test_exact_accuracy": 0.009166666666666667,
+      "ood_exact_accuracy": 0.005,
+      "seen_t1_accuracy": 0.015625,
+      "ood_n_t1_accuracy": 0.001953125,
+      "optimizer_steps": 12316,
+      "model_state_elements": 696328,
+      "peak_gpu_memory_bytes": 37522432,
+      "submission_sha256": "179419b9e7f5fe21cbb2770c59cb0ba6e9572479647ce6968a2ef441e3306698"
+    },
+    "digit_xn": {
+      "test_exact_accuracy": 0.01,
+      "ood_exact_accuracy": 0.005,
+      "seen_t1_accuracy": 0.01171875,
+      "ood_n_t1_accuracy": 0.00390625,
+      "optimizer_steps": 12236,
+      "model_state_elements": 745736,
+      "optimizer_state_elements": 1491504,
+      "peak_gpu_memory_bytes": 39445504,
+      "diagnostic_exact_accuracy": 0.0234375,
+      "diagnostic_ood_exact_accuracy": 0.001953125,
+      "diagnostic_steps_per_second": 40.099614349577905,
+      "submission_sha256": "fe8ec8b46f32168000fae440e160aee4f552a94209b23d93bdda57bc2dc0d0dc"
+    }
+  },
+  "artifacts": "experiments/geometric_navigation_v1/results/latest/v8/artifacts"
+}
