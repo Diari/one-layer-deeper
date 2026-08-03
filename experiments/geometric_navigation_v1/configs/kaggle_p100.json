@@ -1,0 +1,21 @@
+{
+  "amp": false,
+  "batch_size": 64,
+  "compile": false,
+  "dataset_order": [
+    "e1",
+    "e2",
+    "e5",
+    "e3",
+    "e4"
+  ],
+  "device": "cuda:0",
+  "dtype": "float32",
+  "eval_batch_size": 128,
+  "seed": 74,
+  "training_time_seconds": 300,
+  "variants": [
+    "control",
+    "full"
+  ]
+}

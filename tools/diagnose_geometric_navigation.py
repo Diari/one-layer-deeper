@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from benchmark import OptimizerSpec
+from benchmark import OptimizerSpec, count_model_state_elements
 from benchmark.batches import prepare_batch
 from benchmark.runner import _loss_and_accuracy, _make_model_spec, _resolve_batch_sizes
 from benchmark.manifest import load_manifest
@@ -169,26 +169,34 @@ def evaluate_model(
             predicted_values, predicted_valid = parse_decimal_tokens(
                 predictions, valid, digit_offset
             )
-            valid_prediction = predicted_valid & predicted_values.lt(number_landmarks)
+            parsed_modulus = auxiliary["parsed_modulus"]
+            valid_prediction = predicted_valid & predicted_values.lt(parsed_modulus)
             invalid += int((~valid_prediction).sum().item())
 
             probabilities = auxiliary["final_landmark_probabilities"].float()
-            landmark_predictions = probabilities.argmax(dim=-1)
-            target_in_range = target_valid & target_values.lt(number_landmarks)
-            landmark_targets += int(target_in_range.sum().item())
-            landmark_correct += int(
-                ((landmark_predictions == target_values) & target_in_range).sum().item()
-            )
-            correct_probability = probabilities.gather(
-                1, target_values.clamp(0, number_landmarks - 1).unsqueeze(1)
-            ).squeeze(1)
-            correct_probability_sum += float(
-                (correct_probability * target_in_range).sum().item()
-            )
-            final_entropy = -(
-                probabilities * probabilities.clamp_min(1.0e-8).log()
-            ).sum(dim=-1)
-            final_entropy_sum += float(final_entropy.sum().item())
+            if probabilities.shape[1] > 0:
+                landmark_predictions = probabilities.argmax(dim=-1)
+                target_in_range = (
+                    target_valid
+                    & target_values.lt(number_landmarks)
+                    & target_values.lt(parsed_modulus)
+                )
+                landmark_targets += int(target_in_range.sum().item())
+                landmark_correct += int(
+                    ((landmark_predictions == target_values) & target_in_range)
+                    .sum()
+                    .item()
+                )
+                correct_probability = probabilities.gather(
+                    1, target_values.clamp(0, number_landmarks - 1).unsqueeze(1)
+                ).squeeze(1)
+                correct_probability_sum += float(
+                    (correct_probability * target_in_range).sum().item()
+                )
+                final_entropy = -(
+                    probabilities * probabilities.clamp_min(1.0e-8).log()
+                ).sum(dim=-1)
+                final_entropy_sum += float(final_entropy.sum().item())
 
             time_steps = auxiliary["parsed_time_steps"]
             for depth in time_steps.unique().tolist():
@@ -224,9 +232,15 @@ def evaluate_model(
             str(depth): values[0] / max(1, values[1])
             for depth, values in sorted(grouped.items())
         },
-        "final_landmark_accuracy": landmark_correct / target_denominator,
-        "correct_landmark_probability": correct_probability_sum / target_denominator,
-        "final_landmark_entropy": final_entropy_sum / denominator,
+        "final_landmark_accuracy": (
+            landmark_correct / target_denominator if landmark_targets else None
+        ),
+        "correct_landmark_probability": (
+            correct_probability_sum / target_denominator if landmark_targets else None
+        ),
+        "final_landmark_entropy": (
+            final_entropy_sum / denominator if landmark_targets else None
+        ),
         "landmark_entropy_by_step": (
             (step_entropy_sum / trajectory_examples).tolist()
             if step_entropy_sum is not None
@@ -301,7 +315,7 @@ def main() -> None:
         loaders[args.split],
         device,
         module.DIGIT_OFFSET,
-        module.NUM_LANDMARKS,
+        getattr(module, "NUM_LANDMARKS", getattr(module, "MAX_VALUE", 0)),
         args.max_eval_examples,
     )
     peak_memory = (
@@ -314,7 +328,14 @@ def main() -> None:
         "commit": git_commit(),
         "submission_sha256": hashlib.sha256(submission_bytes).hexdigest(),
         "variant": args.variant,
-        "dataset": "e1",
+        "dataset": next(
+            (
+                dataset
+                for dataset in ("e1", "e2", "e3", "e4", "e5")
+                if f"-{dataset}" in manifest.name
+            ),
+            manifest.name,
+        ),
         "seed": seed,
         "gpu": gpu_name(device),
         "environment": {
@@ -332,6 +353,17 @@ def main() -> None:
             "dtype": manifest.runtime.dtype,
             "amp": manifest.runtime.amp,
             "compile": manifest.runtime.compile,
+            "trainable_parameters": sum(
+                parameter.numel()
+                for parameter in model.parameters()
+                if parameter.requires_grad
+            ),
+            "non_trainable_parameters": sum(
+                parameter.numel()
+                for parameter in model.parameters()
+                if not parameter.requires_grad
+            ),
+            "model_state_elements": count_model_state_elements(model),
         },
         "runtime": {
             "peak_gpu_memory_bytes": peak_memory,

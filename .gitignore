@@ -12,3 +12,4 @@ kaggle.json
 artifacts/
 *.zip
 experiments/geometric_navigation/results/latest/
+experiments/geometric_navigation_v1/results/latest/

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a local E1 manifest without changing evaluator-owned manifests."""
+"""Generate a local Easy manifest without changing evaluator-owned manifests."""
 
 from __future__ import annotations
 
@@ -11,12 +11,18 @@ from benchmark.manifest import load_manifest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OFFICIAL_E1 = ROOT / "benchmark/manifests/h100_easy_e1.json"
+OFFICIAL_MANIFESTS = {
+    dataset: ROOT / f"benchmark/manifests/h100_easy_{dataset}.json"
+    for dataset in ("e1", "e2", "e3", "e4", "e5")
+}
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--dataset", choices=tuple(OFFICIAL_MANIFESTS), default="e1"
+    )
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--eval-batch-size", type=int, default=128)
     parser.add_argument("--training-duration", type=float, default=300.0)
@@ -37,8 +43,11 @@ def generate_manifest(args: argparse.Namespace) -> dict:
         raise ValueError("batch sizes must be positive")
     if args.training_duration <= 0:
         raise ValueError("training duration must be positive")
-    payload = json.loads(OFFICIAL_E1.read_text(encoding="utf-8"))
-    payload["name"] = "squaring-mod-easy-e1-kaggle-geometric-navigation"
+    official = OFFICIAL_MANIFESTS[args.dataset]
+    payload = json.loads(official.read_text(encoding="utf-8"))
+    payload["name"] = (
+        f"squaring-mod-easy-{args.dataset}-kaggle-geometric-navigation"
+    )
     payload["data"]["batch_size"] = args.batch_size
     payload["data"]["eval_batch_size"] = args.eval_batch_size
     payload["runtime"].update(

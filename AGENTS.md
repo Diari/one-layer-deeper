@@ -13,4 +13,6 @@
 - Change one experimental variable at a time.
 - Do not claim an improvement without a matched baseline.
 - Keep fixed-N and variable-N work separate.
-- Stop after fixed-N E1 is ready for Kaggle.
+- Preserve fixed-N V0 while variable-N V1 is developed separately.
+- Stop after the Easy-only 4096-landmark V1 gates are ready for Kaggle.
+- Do not begin Medium, Hard, or scalable landmarks until V1 clears E5.
