@@ -37,12 +37,12 @@ kaggle kernels push \
   -p kaggle/geometric-navigation-v1 \
   --accelerator NvidiaTeslaP100
 
-kaggle kernels status USERNAME/geometric-navigation-v1-easy
+kaggle kernels status USERNAME/geometric-navigation-v1-1-relative-e5
 
 mkdir -p experiments/geometric_navigation_v1/results/latest
 
 kaggle kernels output \
-  USERNAME/geometric-navigation-v1-easy \
+  USERNAME/geometric-navigation-v1-1-relative-e5 \
   -p experiments/geometric_navigation_v1/results/latest \
   --force
 ```

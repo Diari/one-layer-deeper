@@ -1,0 +1,56 @@
+{
+  "commit": "e4be060faedb6fed7deaad67c0c22bac026d2348",
+  "dataset": "e5",
+  "gpu": "Tesla P100-PCIE-16GB",
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300
+  },
+  "gate": {
+    "matched": true,
+    "passed": false,
+    "relative_test_delta_vs_control": -0.007499999975164732,
+    "relative_test_delta_vs_full": -0.09583333333333333,
+    "seen_t1_improved_vs_control": false,
+    "ood_n_t1_improved_vs_control": false,
+    "repeat_required": false,
+    "top_k_v2_supported": false
+  },
+  "runs": {
+    "control": {
+      "test_exact_accuracy": 0.011666666666666667,
+      "ood_exact_accuracy": 0.005,
+      "seen_t1_accuracy": 0.021484375,
+      "ood_n_t1_accuracy": 0.005859375,
+      "optimizer_steps": 11879,
+      "submission_sha256": "2a2bcede65702cef6e69164ae3b61300cedb7cd720fe83b06ce38cc82e56b902"
+    },
+    "full": {
+      "test_exact_accuracy": 0.10000000002483526,
+      "ood_exact_accuracy": 0.105,
+      "seen_t1_accuracy": 0.076171875,
+      "ood_n_t1_accuracy": 0.001953125,
+      "optimizer_steps": 4806,
+      "test_recall_at_64": 0.4375,
+      "ood_recall_at_64": 0.376953125,
+      "ood_recall_at_128": 0.482421875,
+      "submission_sha256": "08ab676cade92058885c1ca8a84ec4757a3ee8aa54b6211a868d879a1965268c"
+    },
+    "relative_full": {
+      "test_exact_accuracy": 0.004166666691501935,
+      "ood_exact_accuracy": 0.008333333333333333,
+      "seen_t1_accuracy": 0.005859375,
+      "ood_n_t1_accuracy": 0.0,
+      "optimizer_steps": 4932,
+      "test_recall_at_64": 0.146484375,
+      "ood_recall_at_64": 0.083984375,
+      "ood_recall_at_128": 0.16796875,
+      "submission_sha256": "403372d7197ff2bbd4db1c0eac3047e05cd7012e8a102056f92ecac73cdeabf0"
+    }
+  }
+}

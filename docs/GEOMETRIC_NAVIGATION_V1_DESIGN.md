@@ -115,6 +115,14 @@ V2 proposal work is justified only if V1.1 improves variable-N/OOD behavior or
 shows high small-k target recall; removing the only useful V1 mechanism without
 that evidence would not be a supported scaling strategy.
 
+The matched P100 result rejected V1.1. `relative_full` reached only 0.42% E5
+test accuracy, below the 1.17% control and 10.00% unchanged full V1. Seen-N T=1
+fell to 0.59% and OOD-N T=1 to 0%. Its OOD target-landmark Recall@64 was 8.40%
+and Recall@128 was 16.80%; even unchanged full V1 reached only 37.70% and 48.24%
+respectively. These results do not justify a small top-k toroidal V2. The next
+score-oriented comparison should strengthen the digit-conditioned recurrent
+baseline without adding scalable geometry.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary
