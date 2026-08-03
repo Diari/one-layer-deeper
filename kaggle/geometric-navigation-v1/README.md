@@ -12,8 +12,9 @@ and the `diaris` Kaggle account. For another fork, edit exactly two fields:
 2. Set `GIT_COMMIT` near the top of `geometric_navigation_v1.py` to a pushed
    commit containing V1. Do not use a branch name.
 
-To advance after a passing gate, change `STOP_AFTER_DATASET` to the next value.
-Use `None` only when deliberately running the complete remaining sequence.
+To advance after a passing gate, set both `START_AT_DATASET` and
+`STOP_AFTER_DATASET` to the next value. Use `STOP_AFTER_DATASET=None` only when
+deliberately running the complete sequence from the configured start.
 E5 promotion requires a second matched run; keep both artifact archives and
 pass both pairs to `tools/compare_geometric_v1_gate.py`.
 

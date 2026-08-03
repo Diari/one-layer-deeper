@@ -17,7 +17,8 @@ import traceback
 REPOSITORY_URL = "https://github.com/Diari/one-layer-deeper.git"
 GIT_COMMIT = "d2428733734c6621718fcb73cde6b54229d0faab"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
-STOP_AFTER_DATASET = "e1"
+START_AT_DATASET = "e2"
+STOP_AFTER_DATASET = "e2"
 PRIMARY_VARIANTS = ("control", "full")
 RUN_FAILURE_ABLATIONS = True
 BATCH_SIZE = 64
@@ -111,12 +112,17 @@ def environment_report() -> dict:
 
 
 def selected_datasets() -> tuple[str, ...]:
+    if START_AT_DATASET not in EXPERIMENT_SEQUENCE:
+        raise ValueError("START_AT_DATASET must be in EXPERIMENT_SEQUENCE")
+    start = EXPERIMENT_SEQUENCE.index(START_AT_DATASET)
     if STOP_AFTER_DATASET is None:
-        return EXPERIMENT_SEQUENCE
+        return EXPERIMENT_SEQUENCE[start:]
     if STOP_AFTER_DATASET not in EXPERIMENT_SEQUENCE:
         raise ValueError("STOP_AFTER_DATASET must be in EXPERIMENT_SEQUENCE or None")
-    index = EXPERIMENT_SEQUENCE.index(STOP_AFTER_DATASET)
-    return EXPERIMENT_SEQUENCE[: index + 1]
+    stop = EXPERIMENT_SEQUENCE.index(STOP_AFTER_DATASET)
+    if stop < start:
+        raise ValueError("STOP_AFTER_DATASET cannot precede START_AT_DATASET")
+    return EXPERIMENT_SEQUENCE[start : stop + 1]
 
 
 def run_benchmark(submission: Path, manifest: Path, result: Path) -> None:
