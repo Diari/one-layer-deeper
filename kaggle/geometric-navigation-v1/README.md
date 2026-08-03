@@ -5,9 +5,10 @@ stops after the matched E1 `control` and `full` comparison. A failed gate also
 runs the two diagnostic ablations. Later gates must retain this order:
 E1 → E2 → E5 → E3 → E4.
 
-Before pushing, edit exactly two fields:
+The checked-in first run is already pinned to the tested implementation commit
+and the `diaris` Kaggle account. For another fork, edit exactly two fields:
 
-1. Replace `USERNAME` in `kernel-metadata.json` with the Kaggle account slug.
+1. Replace `diaris` in `kernel-metadata.json` with the Kaggle account slug.
 2. Set `GIT_COMMIT` near the top of `geometric_navigation_v1.py` to a pushed
    commit containing V1. Do not use a branch name.
 
