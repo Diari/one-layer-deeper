@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "submissions/geometric_navigation_v1/submission.py"
 VARIANTS = (
     "control",
+    "digit_x",
     "fourier",
     "snap_no_landmark_loss",
     "full",

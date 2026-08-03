@@ -16,6 +16,8 @@ python tools/make_geometric_v1_variant.py \
 Available variants are:
 
 - `control`: learned residue start embedding and recurrent model, no geometry.
+- `digit_x`: ordered decimal x-digit start encoder replacing only the control's
+  absolute residue lookup; modulus encoding and decoder remain unchanged.
 - `fourier`: dynamic Fourier landmark start state, no projection.
 - `snap_no_landmark_loss`: Fourier landmarks and snapping, no landmark CE.
 - `full`: Fourier landmarks, snapping, landmark CE, and entropy regularization.

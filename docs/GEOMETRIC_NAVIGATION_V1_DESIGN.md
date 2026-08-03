@@ -123,6 +123,21 @@ respectively. These results do not justify a small top-k toroidal V2. The next
 score-oriented comparison should strengthen the digit-conditioned recurrent
 baseline without adding scalable geometry.
 
+## Digit-conditioned non-geometric D1
+
+The first stronger-baseline experiment is `digit_x`. It changes only the
+control's starting-value representation. Instead of `embedding[x]`, each x
+digit is combined with a right-aligned decimal-place embedding and an
+elementwise digit/place interaction, projected token-wise, pooled, and
+normalized. The existing modulus encoder, recurrent transition, answer and x
+reconstruction decoders, losses, optimizer, batches, seed, and time budget are
+unchanged. No geometric bank or snapping module is constructed.
+
+This isolates whether compositional x digits improve variable-N generalization
+while retaining control-like throughput. Ordered N encoding and a
+modulus-conditioned decoder remain separate future changes and must not be
+introduced unless the `digit_x` result is first recorded.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary

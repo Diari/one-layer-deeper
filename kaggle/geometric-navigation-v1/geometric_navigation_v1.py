@@ -19,7 +19,7 @@ GIT_COMMIT = "e4be060faedb6fed7deaad67c0c22bac026d2348"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
 START_AT_DATASET = "e5"
 STOP_AFTER_DATASET = "e5"
-PRIMARY_VARIANTS = ("control", "full", "relative_full")
+PRIMARY_VARIANTS = ("control", "full", "digit_x")
 RUN_FAILURE_ABLATIONS = False
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 128
@@ -336,7 +336,7 @@ def main() -> None:
                 sys.executable,
                 "tools/make_geometric_v1_variant.py",
                 "--variant",
-                "relative_full",
+                "digit_x",
                 "--output",
                 str(memory_submission),
             ],
@@ -416,7 +416,7 @@ def main() -> None:
                     "--control",
                     str(by_variant["control"]),
                     "--full",
-                    str(by_variant["relative_full"]),
+                    str(by_variant["digit_x"]),
                     "--output",
                     str(gate_path),
                 ],
@@ -425,13 +425,13 @@ def main() -> None:
                 append=True,
             )
             gate = json.loads(gate_path.read_text(encoding="utf-8"))
-            architecture_comparison = ARTIFACTS / dataset / "full_vs_relative.json"
+            architecture_comparison = ARTIFACTS / dataset / "full_vs_digit_x.json"
             run(
                 [
                     sys.executable,
                     "tools/compare_experiments.py",
                     str(by_diagnostics["full"]),
-                    str(by_diagnostics["relative_full"]),
+                    str(by_diagnostics["digit_x"]),
                     "--output",
                     str(architecture_comparison),
                 ],
@@ -439,7 +439,7 @@ def main() -> None:
                 log=RUNNER_LOG,
                 append=True,
             )
-            stages[f"{dataset}_full_vs_relative"] = "passed"
+            stages[f"{dataset}_full_vs_digit_x"] = "passed"
             primary_passed = gate["primary"]["passed"]
             if dataset == "e5" and primary_passed:
                 stages[f"{dataset}_gate"] = "primary_passed_repeat_required"

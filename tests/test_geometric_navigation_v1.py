@@ -313,6 +313,40 @@ def test_relative_full_removes_only_absolute_residue_parameters(module, model_sp
         module.VARIANT = original_variant
 
 
+def test_digit_x_uses_ordered_digits_and_all_parameters_receive_gradients(
+    module, model_spec
+):
+    model = build_model(module, model_spec, "digit_x")
+    assert not hasattr(model, "geometry")
+    assert not hasattr(model, "start_embedding")
+    assert hasattr(model, "start_digit_encoder")
+
+    ordered = prompt_batch(row(899, 302, 2, 25), row(899, 320, 2, 81))
+    parsed = module.parse_prompt_tokens(
+        ordered["input_ids"], ordered["attention_mask"]
+    )
+    encoded = model.start_digit_encoder(
+        ordered["input_ids"], parsed["starting_digit_mask"]
+    )
+    assert encoded.shape == (2, module.WIDTH)
+    assert torch.isfinite(encoded).all()
+    assert not torch.allclose(encoded[0], encoded[1])
+
+    original_variant = module.VARIANT
+    module.VARIANT = "digit_x"
+    try:
+        _, _, token_batch = loss_batch(module, model, ordered)
+        loss = module.geometric_v1_token_training_loss(token_batch)
+        assert torch.isfinite(loss)
+        loss.backward()
+        for name, parameter in model.named_parameters():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum() > 0, name
+    finally:
+        module.VARIANT = original_variant
+
+
 def test_control_has_no_geometric_parameters_and_no_unused_parameters(
     module, model_spec
 ):
@@ -343,6 +377,7 @@ def test_control_has_no_geometric_parameters_and_no_unused_parameters(
     ("variant", "has_geometry", "has_snapping"),
     [
         ("control", False, False),
+        ("digit_x", False, False),
         ("fourier", True, False),
         ("snap_no_landmark_loss", True, True),
         ("full", True, True),
@@ -360,7 +395,8 @@ def test_variants_conditionally_construct_modules(
             variant != "relative_full"
         )
     else:
-        assert hasattr(model, "start_embedding")
+        assert hasattr(model, "start_digit_encoder") is (variant == "digit_x")
+        assert hasattr(model, "start_embedding") is (variant == "control")
 
 
 def test_evaluation_is_deterministic(module, model_spec):

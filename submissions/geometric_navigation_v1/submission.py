@@ -54,6 +54,7 @@ EVAL_TEMPERATURE_SCALE = 0.60
 VARIANT = "full"
 VALID_VARIANTS = (
     "control",
+    "digit_x",
     "fourier",
     "snap_no_landmark_loss",
     "full",
@@ -70,7 +71,12 @@ class Config:
 def _variant_flags(variant: str) -> tuple[bool, bool, bool, bool]:
     if variant not in VALID_VARIANTS:
         raise ValueError("unknown geometric V1 variant")
-    uses_geometry = variant != "control"
+    uses_geometry = variant in (
+        "fourier",
+        "snap_no_landmark_loss",
+        "full",
+        "relative_full",
+    )
     uses_snapping = variant in ("snap_no_landmark_loss", "full", "relative_full")
     uses_landmark_loss = variant in ("full", "relative_full")
     uses_entropy_loss = variant in (
@@ -240,6 +246,39 @@ class ModulusEncoder(nn.Module):
         )
 
 
+class OrderedDigitEncoder(nn.Module):
+    """Encode decimal digits with their right-aligned place identities."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.digit_embedding = nn.Embedding(NUM_DIGITS, WIDTH)
+        self.place_embedding = nn.Embedding(MAX_OUTPUT_DIGITS, WIDTH)
+        self.token_projection = nn.Sequential(
+            nn.Linear(3 * WIDTH, WIDTH),
+            nn.SiLU(),
+            nn.Linear(WIDTH, WIDTH),
+        )
+        self.output_norm = nn.LayerNorm(WIDTH)
+
+    def forward(self, input_ids: Tensor, digit_mask: Tensor) -> Tensor:
+        digits = (input_ids - DIGIT_OFFSET).clamp(0, NUM_DIGITS - 1)
+        places = (
+            digit_mask.flip(1).long().cumsum(dim=1).flip(1) - 1
+        ).clamp(0, MAX_OUTPUT_DIGITS - 1)
+        digit_values = self.digit_embedding(digits)
+        place_values = self.place_embedding(places)
+        token_values = self.token_projection(
+            torch.cat(
+                (digit_values, place_values, digit_values * place_values),
+                dim=-1,
+            )
+        )
+        weights = digit_mask.to(dtype=token_values.dtype).unsqueeze(-1)
+        pooled = (token_values * weights).sum(dim=1)
+        pooled = pooled / weights.sum(dim=1).clamp_min(1.0)
+        return self.output_norm(pooled)
+
+
 class DynamicLandmarkGeometry(nn.Module):
     """Build one variable-N landmark bank and optionally snap into it."""
 
@@ -351,12 +390,15 @@ class VariableGeometricNavigationModel(nn.Module):
             self.uses_entropy_loss,
         ) = _variant_flags(variant)
         self.uses_absolute_residue_embedding = variant != "relative_full"
+        self.uses_ordered_start_digits = variant == "digit_x"
         self.modulus_encoder = ModulusEncoder()
         if self.uses_geometry:
             self.geometry = DynamicLandmarkGeometry(
                 self.uses_snapping,
                 self.uses_absolute_residue_embedding,
             )
+        elif self.uses_ordered_start_digits:
+            self.start_digit_encoder = OrderedDigitEncoder()
         else:
             self.start_embedding = nn.Embedding(MAX_VALUE, WIDTH)
         self.start_norm = nn.LayerNorm(WIDTH)
@@ -406,7 +448,12 @@ class VariableGeometricNavigationModel(nn.Module):
                 (input_ids.shape[0], 0), dtype=torch.bool, device=input_ids.device
             )
             coordinate_features = modulus_context.new_empty((input_ids.shape[0], 0, 0))
-            start_values = self.start_embedding(start_indices)
+            if self.uses_ordered_start_digits:
+                start_values = self.start_digit_encoder(
+                    input_ids, parsed["starting_digit_mask"]
+                )
+            else:
+                start_values = self.start_embedding(start_indices)
 
         starting_state = self.start_norm(start_values + modulus_context)
         state = starting_state
