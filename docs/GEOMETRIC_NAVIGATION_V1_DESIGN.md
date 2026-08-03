@@ -81,6 +81,24 @@ trigger the two diagnostic ablations without changing optimizer or width.
 P100 timing does not calibrate H100 performance. A passed P100 gate must be
 repeated with the official 60-second H100 manifest before promotion.
 
+## Initial P100 evidence
+
+The matched seed-74, 300-second P100 ladder completed on 2026-08-03. Full V1
+passed the fixed-modulus screens on E1 (80.67% versus 54.67% control) and E2
+(78.13% versus 58.33%). It did not pass the decisive variable-N E5 gate:
+10.08% versus 1.17% is an 8.92-point advantage, below the required ten points,
+and OOD-N T=1 accuracy was lower than control. The failed-gate ablations scored
+1.25% (`fourier`) and 1.42% (`snap_no_landmark_loss`), showing that supplied-label
+landmark supervision accounts for nearly all of the E5 gain.
+
+E3 and E4 scaling diagnostics were at floor. Full V1 scored 2.13% on E3 and
+0.44% on E4, only 0.13 points above control on each, while completing roughly
+5,000 optimizer steps versus 13,000 for control. This rejects promotion of the
+current 4096-way V1. The next isolated architectural test should remove the
+absolute global residue embedding while retaining N-relative coordinates; it
+must be evaluated as a new matched experiment rather than presented as part of
+these V1 results.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary
