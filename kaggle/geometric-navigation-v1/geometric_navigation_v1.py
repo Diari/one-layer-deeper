@@ -17,8 +17,8 @@ import traceback
 REPOSITORY_URL = "https://github.com/Diari/one-layer-deeper.git"
 GIT_COMMIT = "d2428733734c6621718fcb73cde6b54229d0faab"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
-START_AT_DATASET = "e5"
-STOP_AFTER_DATASET = "e5"
+START_AT_DATASET = "e3"
+STOP_AFTER_DATASET = "e4"
 PRIMARY_VARIANTS = ("control", "full")
 RUN_FAILURE_ABLATIONS = True
 BATCH_SIZE = 64

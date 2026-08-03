@@ -1,0 +1,37 @@
+{
+  "commit": "d2428733734c6621718fcb73cde6b54229d0faab",
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300
+  },
+  "dataset": "e1",
+  "gate": {
+    "full_test_accuracy_at_least_0_70": true,
+    "matched": true,
+    "passed": true,
+    "test_delta_at_least_0_10": true
+  },
+  "gpu": "Tesla P100-PCIE-16GB",
+  "runs": {
+    "control": {
+      "model_state_elements": 1152776,
+      "optimizer_steps": 10304,
+      "submission_sha256": "0d6c94534e3a62746bc45e91ba8eb843668db7ae9fafbf4666549baa8061536b",
+      "test_exact_accuracy": 0.5466666746139527
+    },
+    "full": {
+      "final_landmark_entropy": 0.012336828709718518,
+      "model_state_elements": 1176073,
+      "optimizer_steps": 4545,
+      "peak_gpu_memory_bytes": 1424055808,
+      "submission_sha256": "60c8d57a75570b63c273b12b9c5488a5468c52b49cf65c8ce45a35a42d353c3e",
+      "test_exact_accuracy": 0.8066666666666666
+    }
+  },
+  "test_exact_accuracy_delta": 0.25999999205271396
+}
