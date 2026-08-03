@@ -1,9 +1,11 @@
-# Kaggle P100 workflow for geometric V1
+# Kaggle P100 workflow for geometric V1/V1.1
 
-The script runs without notebook interaction. Its checked-in first-run setting
-stops after the matched E1 `control` and `full` comparison. A failed gate also
-runs the two diagnostic ablations. Later gates must retain this order:
-E1 → E2 → E5 → E3 → E4.
+The script runs without notebook interaction. Its checked-in setting performs
+the isolated E5 V1.1 comparison: `control`, unchanged `full`, and
+`relative_full`. The gate compares `relative_full` against `control`, while
+`full_vs_relative.json` records the one-variable architectural comparison.
+Failure ablations are disabled because the earlier E5 run already measured
+`fourier` and `snap_no_landmark_loss`.
 
 The checked-in first run is already pinned to the tested implementation commit
 and the `diaris` Kaggle account. For another fork, edit exactly two fields:
@@ -12,11 +14,11 @@ and the `diaris` Kaggle account. For another fork, edit exactly two fields:
 2. Set `GIT_COMMIT` near the top of `geometric_navigation_v1.py` to a pushed
    commit containing V1. Do not use a branch name.
 
-To advance after a passing gate, set both `START_AT_DATASET` and
-`STOP_AFTER_DATASET` to the next value. Use `STOP_AFTER_DATASET=None` only when
-deliberately running the complete sequence from the configured start.
-E5 promotion requires a second matched run; keep both artifact archives and
-pass both pairs to `tools/compare_geometric_v1_gate.py`.
+V1.1 must improve both seen-N and OOD-N T=1 accuracy and beat control by ten
+test-accuracy points before a repeat is justified. The diagnostics also report
+correct-landmark mean rank, reciprocal rank, and Recall@1/8/16/32/64/128 on
+both test and OOD splits. Do not begin V2 based only on a throughput or
+fixed-modulus result.
 
 Install the Kaggle client and credentials locally (never print or commit the
 credential):
@@ -48,7 +50,8 @@ kaggle kernels output \
 The downloaded archive contains `artifacts/summary.json`, environment and test
 logs, the generated manifest, maximum-N memory preflight, and per-dataset,
 per-variant directories containing `result.json`, `diagnostics.json`, the exact
-standalone submission, and its SHA-256. Each dataset also has `gate.json`.
+standalone submission, and its SHA-256. E5 also has `gate.json` and
+`full_vs_relative.json`.
 
 Internet is enabled only because the kernel clones the pinned repository and
 installs the P100-compatible PyTorch wheel. The kernel remains private and uses

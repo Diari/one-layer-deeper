@@ -14,5 +14,7 @@
 - Do not claim an improvement without a matched baseline.
 - Keep fixed-N and variable-N work separate.
 - Preserve fixed-N V0 while variable-N V1 is developed separately.
-- Stop after the Easy-only 4096-landmark V1 gates are ready for Kaggle.
-- Do not begin Medium, Hard, or scalable landmarks until V1 clears E5.
+- Current scope is the single-variable V1.1 E5 experiment that removes the
+  absolute residue embedding while retaining V1's relative geometry.
+- Do not begin toroidal V2, Medium, Hard, or scalable landmarks unless V1.1
+  provides new E5 generalization evidence.

@@ -19,6 +19,8 @@ Available variants are:
 - `fourier`: dynamic Fourier landmark start state, no projection.
 - `snap_no_landmark_loss`: Fourier landmarks and snapping, no landmark CE.
 - `full`: Fourier landmarks, snapping, landmark CE, and entropy regularization.
+- `relative_full`: identical to `full` except that landmarks contain no learned
+  absolute residue embedding; this is the isolated V1.1 experiment.
 
 Run the focused CPU checks with:
 

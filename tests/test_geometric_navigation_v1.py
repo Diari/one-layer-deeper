@@ -21,11 +21,22 @@ from data.squaring_mod import (
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBMISSION_PATH = ROOT / "submissions/geometric_navigation_v1/submission.py"
+DIAGNOSTIC_PATH = ROOT / "tools/diagnose_geometric_navigation.py"
 
 
 def load_submission_module():
     spec = importlib.util.spec_from_file_location(
         "geometric_navigation_v1_submission", SUBMISSION_PATH
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_diagnostic_module():
+    spec = importlib.util.spec_from_file_location(
+        "geometric_navigation_diagnostic", DIAGNOSTIC_PATH
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -130,6 +141,25 @@ def test_variable_fourier_features_are_periodic_finite_and_fixed(module):
     assert coordinates.shape == (3, 8, 18)
     assert torch.isfinite(coordinates).all()
     assert not coordinates.requires_grad
+
+
+def test_correct_landmark_rank_and_recall_inputs_are_masked():
+    diagnostic = load_diagnostic_module()
+    probabilities = torch.tensor(
+        [
+            [0.50, 0.30, 0.20, 0.90],
+            [0.10, 0.40, 0.30, 0.20],
+        ]
+    )
+    targets = torch.tensor([2, 1])
+    mask = torch.tensor(
+        [
+            [True, True, True, False],
+            [True, True, True, True],
+        ]
+    )
+    ranks = diagnostic.correct_landmark_ranks(probabilities, targets, mask)
+    assert ranks.tolist() == [3, 1]
 
 
 def test_dynamic_masks_projection_and_single_bank_build(module, model_spec):
@@ -245,6 +275,44 @@ def test_full_loss_backward_reaches_geometric_components(module, model_spec):
             assert torch.isfinite(parameter.grad).all(), name
 
 
+def test_relative_full_removes_only_absolute_residue_parameters(module, model_spec):
+    full = build_model(module, model_spec, "full")
+    relative = build_model(module, model_spec, "relative_full")
+    assert hasattr(full.geometry, "residue_embedding")
+    assert not hasattr(relative.geometry, "residue_embedding")
+    full_names = {name for name, _ in full.named_parameters()}
+    relative_names = {name for name, _ in relative.named_parameters()}
+    assert full_names - relative_names == {"geometry.residue_embedding.weight"}
+    assert not (relative_names - full_names)
+
+    original_variant = module.VARIANT
+    module.VARIANT = "relative_full"
+    try:
+        batch = prompt_batch(row(323, 5, 2, 25), row(899, 302, 4, 81))
+        _, _, token_batch = loss_batch(module, relative, batch)
+        loss = module.geometric_v1_token_training_loss(token_batch)
+        assert torch.isfinite(loss)
+        loss.backward()
+        components = {
+            "coordinate_projection": relative.geometry.coordinate_projection.weight,
+            "landmark_modulus_projection": relative.geometry.modulus_projection.weight,
+            "modulus_encoder": relative.modulus_encoder.scalar_projection[0].weight,
+            "transition": relative.transition.left.weight,
+            "temperature": relative.geometry.log_temperature,
+            "answer_decoder": relative.answer_decoder.weight,
+            "reconstruction_decoder": relative.reconstruction_decoder.weight,
+        }
+        for name, parameter in components.items():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum() > 0, name
+        for name, parameter in relative.named_parameters():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+    finally:
+        module.VARIANT = original_variant
+
+
 def test_control_has_no_geometric_parameters_and_no_unused_parameters(
     module, model_spec
 ):
@@ -278,6 +346,7 @@ def test_control_has_no_geometric_parameters_and_no_unused_parameters(
         ("fourier", True, False),
         ("snap_no_landmark_loss", True, True),
         ("full", True, True),
+        ("relative_full", True, True),
     ],
 )
 def test_variants_conditionally_construct_modules(
@@ -287,6 +356,9 @@ def test_variants_conditionally_construct_modules(
     assert hasattr(model, "geometry") is has_geometry
     if has_geometry:
         assert hasattr(model.geometry, "log_temperature") is has_snapping
+        assert hasattr(model.geometry, "residue_embedding") is (
+            variant != "relative_full"
+        )
     else:
         assert hasattr(model, "start_embedding")
 

@@ -34,6 +34,7 @@ from data import make_dataloaders
 
 
 DEFAULT_SUBMISSION = ROOT / "submissions/geometric_navigation/submission.py"
+LANDMARK_RECALL_K = (1, 8, 16, 32, 64, 128)
 
 
 def load_module(path: Path):
@@ -60,6 +61,20 @@ def parse_decimal_tokens(
         digit = (token - digit_offset).clamp(0, 9)
         values = torch.where(active & is_digit, values * 10 + digit, values)
     return values, all_digits & valid.any(dim=1)
+
+
+def correct_landmark_ranks(
+    probabilities: torch.Tensor,
+    target_values: torch.Tensor,
+    landmark_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Return one-based target ranks using only valid landmark candidates."""
+
+    target_probability = probabilities.gather(
+        1, target_values.unsqueeze(1)
+    ).squeeze(1)
+    better = probabilities.gt(target_probability.unsqueeze(1)) & landmark_mask
+    return better.sum(dim=1) + 1
 
 
 def git_commit() -> str:
@@ -139,6 +154,8 @@ def evaluate_model(
     examples = tokens = exact = correct_tokens = 0
     landmark_correct = landmark_targets = invalid = 0
     correct_probability_sum = final_entropy_sum = 0.0
+    landmark_rank_sum = landmark_reciprocal_rank_sum = 0.0
+    landmark_recall_counts = {value: 0 for value in LANDMARK_RECALL_K}
     grouped: dict[int, list[int]] = {}
     step_entropy_sum = step_norm_sum = step_movement_sum = None
     trajectory_examples = 0
@@ -193,6 +210,21 @@ def evaluate_model(
                 correct_probability_sum += float(
                     (correct_probability * target_in_range).sum().item()
                 )
+                ranks = correct_landmark_ranks(
+                    probabilities,
+                    target_values.clamp(0, number_landmarks - 1),
+                    auxiliary["landmark_mask"],
+                )
+                landmark_rank_sum += float(
+                    (ranks * target_in_range).sum().item()
+                )
+                landmark_reciprocal_rank_sum += float(
+                    (ranks.float().reciprocal() * target_in_range).sum().item()
+                )
+                for top_k in LANDMARK_RECALL_K:
+                    landmark_recall_counts[top_k] += int(
+                        ((ranks <= top_k) & target_in_range).sum().item()
+                    )
                 final_entropy = -(
                     probabilities * probabilities.clamp_min(1.0e-8).log()
                 ).sum(dim=-1)
@@ -238,6 +270,22 @@ def evaluate_model(
         "correct_landmark_probability": (
             correct_probability_sum / target_denominator if landmark_targets else None
         ),
+        "correct_landmark_mean_rank": (
+            landmark_rank_sum / target_denominator if landmark_targets else None
+        ),
+        "correct_landmark_mean_reciprocal_rank": (
+            landmark_reciprocal_rank_sum / target_denominator
+            if landmark_targets
+            else None
+        ),
+        "correct_landmark_recall_at_k": (
+            {
+                str(top_k): count / target_denominator
+                for top_k, count in landmark_recall_counts.items()
+            }
+            if landmark_targets
+            else {}
+        ),
         "final_landmark_entropy": (
             final_entropy_sum / denominator if landmark_targets else None
         ),
@@ -268,6 +316,7 @@ def main() -> None:
     parser.add_argument("--submission", type=Path, default=DEFAULT_SUBMISSION)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--split", default="test")
+    parser.add_argument("--additional-split", action="append", default=[])
     parser.add_argument("--training-seconds", type=float, default=0.0)
     parser.add_argument("--max-steps", type=int, default=1_000_000)
     parser.add_argument("--max-eval-examples", type=int, default=512)
@@ -299,6 +348,9 @@ def main() -> None:
     )
     if args.split not in loaders:
         raise ValueError(f"split {args.split!r} not available: {sorted(loaders)}")
+    for split in args.additional_split:
+        if split not in loaders:
+            raise ValueError(f"split {split!r} not available: {sorted(loaders)}")
     spec = _make_model_spec(manifest)
     model = submission.build_model(spec).to(device=device, dtype=torch.float32)
     training = train_model(
@@ -318,6 +370,21 @@ def main() -> None:
         getattr(module, "NUM_LANDMARKS", getattr(module, "MAX_VALUE", 0)),
         args.max_eval_examples,
     )
+    metrics_by_split = {args.split: metrics}
+    additional_evaluation_seconds = {}
+    for split in args.additional_split:
+        if split == args.split or split in metrics_by_split:
+            continue
+        split_metrics, split_seconds = evaluate_model(
+            model,
+            loaders[split],
+            device,
+            module.DIGIT_OFFSET,
+            getattr(module, "NUM_LANDMARKS", getattr(module, "MAX_VALUE", 0)),
+            args.max_eval_examples,
+        )
+        metrics_by_split[split] = split_metrics
+        additional_evaluation_seconds[split] = split_seconds
     peak_memory = (
         int(torch.cuda.max_memory_allocated())
         if device.type == "cuda"
@@ -371,9 +438,11 @@ def main() -> None:
             "optimizer_steps_per_second": training["steps_per_second"],
             "training_duration_seconds": training["seconds"],
             "evaluation_duration_seconds": evaluation_seconds,
+            "additional_evaluation_duration_seconds": additional_evaluation_seconds,
             "examples_per_second": metrics["examples"] / max(evaluation_seconds, 1.0e-9),
         },
         "metrics": metrics,
+        "metrics_by_split": metrics_by_split,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

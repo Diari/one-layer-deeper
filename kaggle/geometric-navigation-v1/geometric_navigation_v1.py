@@ -17,10 +17,10 @@ import traceback
 REPOSITORY_URL = "https://github.com/Diari/one-layer-deeper.git"
 GIT_COMMIT = "d2428733734c6621718fcb73cde6b54229d0faab"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
-START_AT_DATASET = "e3"
-STOP_AFTER_DATASET = "e4"
-PRIMARY_VARIANTS = ("control", "full")
-RUN_FAILURE_ABLATIONS = True
+START_AT_DATASET = "e5"
+STOP_AFTER_DATASET = "e5"
+PRIMARY_VARIANTS = ("control", "full", "relative_full")
+RUN_FAILURE_ABLATIONS = False
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 128
 TRAINING_SECONDS = 300
@@ -194,6 +194,8 @@ def run_variant(dataset: str, variant: str, manifest: Path) -> dict:
             str(directory / "diagnostics.json"),
             "--training-seconds",
             str(TRAINING_SECONDS),
+            "--additional-split",
+            "ood",
             "--variant",
             f"geometric_v1_{variant}",
         ],
@@ -334,7 +336,7 @@ def main() -> None:
                 sys.executable,
                 "tools/make_geometric_v1_variant.py",
                 "--variant",
-                "full",
+                "relative_full",
                 "--output",
                 str(memory_submission),
             ],
@@ -397,10 +399,12 @@ def main() -> None:
             )
             stages[f"{dataset}_data_manifest"] = "passed"
             by_variant = {}
+            by_diagnostics = {}
             for variant in PRIMARY_VARIANTS:
                 run_summary = run_variant(dataset, variant, manifest)
                 runs.append(run_summary)
                 by_variant[variant] = ARTIFACTS / run_summary["result"]
+                by_diagnostics[variant] = ARTIFACTS / run_summary["diagnostics"]
                 stages[f"{dataset}_{variant}"] = "passed"
             gate_path = ARTIFACTS / dataset / "gate.json"
             run(
@@ -412,7 +416,7 @@ def main() -> None:
                     "--control",
                     str(by_variant["control"]),
                     "--full",
-                    str(by_variant["full"]),
+                    str(by_variant["relative_full"]),
                     "--output",
                     str(gate_path),
                 ],
@@ -421,6 +425,21 @@ def main() -> None:
                 append=True,
             )
             gate = json.loads(gate_path.read_text(encoding="utf-8"))
+            architecture_comparison = ARTIFACTS / dataset / "full_vs_relative.json"
+            run(
+                [
+                    sys.executable,
+                    "tools/compare_experiments.py",
+                    str(by_diagnostics["full"]),
+                    str(by_diagnostics["relative_full"]),
+                    "--output",
+                    str(architecture_comparison),
+                ],
+                cwd=REPOSITORY,
+                log=RUNNER_LOG,
+                append=True,
+            )
+            stages[f"{dataset}_full_vs_relative"] = "passed"
             primary_passed = gate["primary"]["passed"]
             if dataset == "e5" and primary_passed:
                 stages[f"{dataset}_gate"] = "primary_passed_repeat_required"

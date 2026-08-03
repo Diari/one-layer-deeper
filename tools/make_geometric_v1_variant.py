@@ -10,7 +10,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "submissions/geometric_navigation_v1/submission.py"
-VARIANTS = ("control", "fourier", "snap_no_landmark_loss", "full")
+VARIANTS = (
+    "control",
+    "fourier",
+    "snap_no_landmark_loss",
+    "full",
+    "relative_full",
+)
 SOURCE_LINE = 'VARIANT = "full"'
 
 

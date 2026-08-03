@@ -99,6 +99,22 @@ absolute global residue embedding while retaining N-relative coordinates; it
 must be evaluated as a new matched experiment rather than presented as part of
 these V1 results.
 
+## V1.1 relative-only falsification test
+
+V1.1 changes exactly one architectural variable. `relative_full` removes the
+learned global `residue_embedding[r]`; every landmark is instead constructed
+only from `r/N`, normalized `log(N)`, eight-frequency circular coordinates,
+and the learned modulus context. Snapping, landmark CE, entropy, reconstruction,
+transition, decoders, optimizer, batches, seed, and training duration remain
+matched to full V1.
+
+The first E5 run contains `control`, unchanged `full`, and `relative_full` on
+the same P100. In addition to the original gate, diagnostics record the rank of
+the supplied target landmark and Recall@1/8/16/32/64/128 on test and OOD data.
+V2 proposal work is justified only if V1.1 improves variable-N/OOD behavior or
+shows high small-k target recall; removing the only useful V1 mechanism without
+that evidence would not be a supported scaling strategy.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary

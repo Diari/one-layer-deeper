@@ -57,6 +57,7 @@ VALID_VARIANTS = (
     "fourier",
     "snap_no_landmark_loss",
     "full",
+    "relative_full",
 )
 
 
@@ -70,9 +71,13 @@ def _variant_flags(variant: str) -> tuple[bool, bool, bool, bool]:
     if variant not in VALID_VARIANTS:
         raise ValueError("unknown geometric V1 variant")
     uses_geometry = variant != "control"
-    uses_snapping = variant in ("snap_no_landmark_loss", "full")
-    uses_landmark_loss = variant == "full"
-    uses_entropy_loss = variant in ("snap_no_landmark_loss", "full")
+    uses_snapping = variant in ("snap_no_landmark_loss", "full", "relative_full")
+    uses_landmark_loss = variant in ("full", "relative_full")
+    uses_entropy_loss = variant in (
+        "snap_no_landmark_loss",
+        "full",
+        "relative_full",
+    )
     return uses_geometry, uses_snapping, uses_landmark_loss, uses_entropy_loss
 
 
@@ -238,10 +243,16 @@ class ModulusEncoder(nn.Module):
 class DynamicLandmarkGeometry(nn.Module):
     """Build one variable-N landmark bank and optionally snap into it."""
 
-    def __init__(self, uses_snapping: bool) -> None:
+    def __init__(
+        self,
+        uses_snapping: bool,
+        uses_absolute_residue_embedding: bool,
+    ) -> None:
         super().__init__()
         self.uses_snapping = uses_snapping
-        self.residue_embedding = nn.Embedding(MAX_VALUE, WIDTH)
+        self.uses_absolute_residue_embedding = uses_absolute_residue_embedding
+        if uses_absolute_residue_embedding:
+            self.residue_embedding = nn.Embedding(MAX_VALUE, WIDTH)
         self.coordinate_projection = nn.Linear(
             2 + 2 * NUM_FOURIER_FREQUENCIES, WIDTH, bias=False
         )
@@ -261,12 +272,13 @@ class DynamicLandmarkGeometry(nn.Module):
     ) -> tuple[Tensor, Tensor, Tensor]:
         coordinates = make_landmark_coordinate_features(
             self.residue_values, modulus
-        ).to(dtype=self.residue_embedding.weight.dtype)
+        ).to(dtype=modulus_context.dtype)
         values = (
-            self.residue_embedding.weight.unsqueeze(0)
-            + self.coordinate_projection(coordinates)
+            self.coordinate_projection(coordinates)
             + self.modulus_projection(modulus_context).unsqueeze(1)
         )
+        if self.uses_absolute_residue_embedding:
+            values = values + self.residue_embedding.weight.unsqueeze(0)
         safe_modulus = modulus.clamp(1, MAX_VALUE)
         valid_mask = self.residue_values.reshape(1, -1).lt(
             safe_modulus.reshape(-1, 1)
@@ -338,9 +350,13 @@ class VariableGeometricNavigationModel(nn.Module):
             self.uses_landmark_loss,
             self.uses_entropy_loss,
         ) = _variant_flags(variant)
+        self.uses_absolute_residue_embedding = variant != "relative_full"
         self.modulus_encoder = ModulusEncoder()
         if self.uses_geometry:
-            self.geometry = DynamicLandmarkGeometry(self.uses_snapping)
+            self.geometry = DynamicLandmarkGeometry(
+                self.uses_snapping,
+                self.uses_absolute_residue_embedding,
+            )
         else:
             self.start_embedding = nn.Embedding(MAX_VALUE, WIDTH)
         self.start_norm = nn.LayerNorm(WIDTH)
