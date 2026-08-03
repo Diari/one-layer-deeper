@@ -138,6 +138,13 @@ while retaining control-like throughput. Ordered N encoding and a
 modulus-conditioned decoder remain separate future changes and must not be
 introduced unless the `digit_x` result is first recorded.
 
+The matched D1 P100 result was negative. `digit_x` scored 1.00% E5 test
+accuracy versus 1.33% control and 9.33% full V1. It completed 12,079 optimizer
+steps, close to control's 12,886, so the failure is not attributable to the
+landmark throughput penalty. The next isolated candidate, `digit_xn`, retains
+ordered x digits and replaces only the order-losing modulus encoder with the
+same ordered decimal representation.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary

@@ -1,0 +1,50 @@
+{
+  "commit": "dc3d28f674583511bf27dfd2083398cbb87a04b7",
+  "dataset": "e5",
+  "gpu": "Tesla P100-PCIE-16GB",
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300
+  },
+  "gate": {
+    "matched": true,
+    "passed": false,
+    "digit_x_test_delta_vs_control": -0.003333333333333334,
+    "digit_x_test_delta_vs_full": -0.08333333333333334,
+    "seen_t1_improved_vs_control": false,
+    "ood_n_t1_improved_vs_control": false,
+    "repeat_required": false
+  },
+  "runs": {
+    "control": {
+      "test_exact_accuracy": 0.013333333333333334,
+      "ood_exact_accuracy": 0.005,
+      "seen_t1_accuracy": 0.017578125,
+      "ood_n_t1_accuracy": 0.00390625,
+      "optimizer_steps": 12886,
+      "submission_sha256": "a35145760caf1f51a23876ac18c5d7ba8d85306f9cce3e7e3c32af25133e2d61"
+    },
+    "full": {
+      "test_exact_accuracy": 0.09333333333333334,
+      "ood_exact_accuracy": 0.11000000009934108,
+      "seen_t1_accuracy": 0.078125,
+      "ood_n_t1_accuracy": 0.001953125,
+      "optimizer_steps": 4932,
+      "submission_sha256": "5a176a31a8ad25536570f86f3fd055a14880acb18e8c5be7eed7a86fb16bfd4f"
+    },
+    "digit_x": {
+      "test_exact_accuracy": 0.01,
+      "ood_exact_accuracy": 0.00833333338300387,
+      "seen_t1_accuracy": 0.013671875,
+      "ood_n_t1_accuracy": 0.0,
+      "optimizer_steps": 12079,
+      "peak_gpu_memory_bytes": 37522432,
+      "submission_sha256": "30b2f611af4bbcd40a3c7a9d49ffba3c282387c610a88e85d3a3bbf0ce307b93"
+    }
+  }
+}
