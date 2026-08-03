@@ -81,6 +81,13 @@ def archive() -> None:
     shutil.make_archive(str(destination.with_suffix("")), "zip", ARTIFACTS)
 
 
+def remove_cloned_repository() -> None:
+    """Keep Kaggle output limited to the requested artifact contract."""
+
+    if REPOSITORY.exists():
+        shutil.rmtree(REPOSITORY)
+
+
 def environment_report() -> dict:
     import torch
 
@@ -437,6 +444,7 @@ def main() -> None:
                 "environment": environment,
             },
         )
+        remove_cloned_repository()
         archive()
     except Exception as exc:
         stages["failure"] = f"{type(exc).__name__}: {exc}"
@@ -451,6 +459,7 @@ def main() -> None:
                 "traceback": traceback.format_exc(),
             },
         )
+        remove_cloned_repository()
         archive()
         raise
 

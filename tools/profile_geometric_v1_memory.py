@@ -59,7 +59,11 @@ def main() -> None:
     device = torch.device(args.device)
     if device.type != "cuda" or not torch.cuda.is_available():
         raise RuntimeError("the maximum-N memory preflight requires CUDA")
-    torch.cuda.reset_peak_memory_stats(device)
+    device_index = (
+        torch.cuda.current_device() if device.index is None else device.index
+    )
+    torch.cuda.set_device(device_index)
+    torch.cuda.reset_peak_memory_stats()
     module = load_module(args.submission.resolve())
     spec = ModelSpec(VOCAB_SIZE, 16, 500_000_000)
     model = module.SUBMISSION.build_model(spec).to(device=device, dtype=torch.float32)
@@ -106,10 +110,10 @@ def main() -> None:
         "modulus": 4095,
         "time_steps": 4,
         "dtype": "float32",
-        "gpu": torch.cuda.get_device_name(device),
-        "gpu_total_memory_bytes": torch.cuda.get_device_properties(device).total_memory,
-        "peak_allocated_bytes": torch.cuda.max_memory_allocated(device),
-        "peak_reserved_bytes": torch.cuda.max_memory_reserved(device),
+        "gpu": torch.cuda.get_device_name(device_index),
+        "gpu_total_memory_bytes": torch.cuda.get_device_properties(device_index).total_memory,
+        "peak_allocated_bytes": torch.cuda.max_memory_allocated(device_index),
+        "peak_reserved_bytes": torch.cuda.max_memory_reserved(device_index),
         "trainable_parameters": trainable,
         "non_trainable_parameters": non_trainable,
         "model_state_elements": count_model_state_elements(model),
