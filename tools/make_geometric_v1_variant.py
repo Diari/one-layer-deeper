@@ -13,6 +13,7 @@ SOURCE = ROOT / "submissions/geometric_navigation_v1/submission.py"
 VARIANTS = (
     "control",
     "digit_x",
+    "digit_xn",
     "fourier",
     "snap_no_landmark_loss",
     "full",

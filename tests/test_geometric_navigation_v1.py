@@ -347,6 +347,39 @@ def test_digit_x_uses_ordered_digits_and_all_parameters_receive_gradients(
         module.VARIANT = original_variant
 
 
+def test_digit_xn_adds_only_ordered_modulus_encoding(module, model_spec):
+    digit_x = build_model(module, model_spec, "digit_x")
+    digit_xn = build_model(module, model_spec, "digit_xn")
+    assert isinstance(digit_x.modulus_encoder, module.ModulusEncoder)
+    assert isinstance(digit_xn.modulus_encoder, module.OrderedDigitEncoder)
+    assert isinstance(digit_xn.start_digit_encoder, module.OrderedDigitEncoder)
+    assert not hasattr(digit_xn, "geometry")
+    assert not hasattr(digit_xn, "start_embedding")
+
+    batch = prompt_batch(row(323, 25, 2, 81), row(332, 25, 2, 81))
+    parsed = module.parse_prompt_tokens(batch["input_ids"], batch["attention_mask"])
+    encoded = digit_xn.modulus_encoder(
+        batch["input_ids"], parsed["modulus_digit_mask"]
+    )
+    assert encoded.shape == (2, module.WIDTH)
+    assert torch.isfinite(encoded).all()
+    assert not torch.allclose(encoded[0], encoded[1])
+
+    original_variant = module.VARIANT
+    module.VARIANT = "digit_xn"
+    try:
+        _, _, token_batch = loss_batch(module, digit_xn, batch)
+        loss = module.geometric_v1_token_training_loss(token_batch)
+        assert torch.isfinite(loss)
+        loss.backward()
+        for name, parameter in digit_xn.named_parameters():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum() > 0, name
+    finally:
+        module.VARIANT = original_variant
+
+
 def test_control_has_no_geometric_parameters_and_no_unused_parameters(
     module, model_spec
 ):
@@ -378,6 +411,7 @@ def test_control_has_no_geometric_parameters_and_no_unused_parameters(
     [
         ("control", False, False),
         ("digit_x", False, False),
+        ("digit_xn", False, False),
         ("fourier", True, False),
         ("snap_no_landmark_loss", True, True),
         ("full", True, True),
@@ -395,7 +429,9 @@ def test_variants_conditionally_construct_modules(
             variant != "relative_full"
         )
     else:
-        assert hasattr(model, "start_digit_encoder") is (variant == "digit_x")
+        assert hasattr(model, "start_digit_encoder") is (
+            variant in ("digit_x", "digit_xn")
+        )
         assert hasattr(model, "start_embedding") is (variant == "control")
 
 

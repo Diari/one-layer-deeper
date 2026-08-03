@@ -145,6 +145,10 @@ landmark throughput penalty. The next isolated candidate, `digit_xn`, retains
 ordered x digits and replaces only the order-losing modulus encoder with the
 same ordered decimal representation.
 
+`digit_xn` is D2. It replaces only D1's averaged digit-plus-scalar modulus
+encoder with an ordered digit/place encoder. The x encoder, transition,
+decoder, losses, optimizer, and runtime configuration remain unchanged.
+
 ## Scope and risks
 
 The 4096-wide bank covers scored Easy examples through the 12-bit E4 boundary

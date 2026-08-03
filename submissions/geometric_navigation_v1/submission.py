@@ -55,6 +55,7 @@ VARIANT = "full"
 VALID_VARIANTS = (
     "control",
     "digit_x",
+    "digit_xn",
     "fourier",
     "snap_no_landmark_loss",
     "full",
@@ -390,8 +391,12 @@ class VariableGeometricNavigationModel(nn.Module):
             self.uses_entropy_loss,
         ) = _variant_flags(variant)
         self.uses_absolute_residue_embedding = variant != "relative_full"
-        self.uses_ordered_start_digits = variant == "digit_x"
-        self.modulus_encoder = ModulusEncoder()
+        self.uses_ordered_start_digits = variant in ("digit_x", "digit_xn")
+        self.uses_ordered_modulus_digits = variant == "digit_xn"
+        if self.uses_ordered_modulus_digits:
+            self.modulus_encoder = OrderedDigitEncoder()
+        else:
+            self.modulus_encoder = ModulusEncoder()
         if self.uses_geometry:
             self.geometry = DynamicLandmarkGeometry(
                 self.uses_snapping,
@@ -430,11 +435,16 @@ class VariableGeometricNavigationModel(nn.Module):
         attention_mask: Tensor | None = None,
     ) -> tuple[Tensor, dict[str, Tensor]]:
         parsed = parse_prompt_tokens(input_ids, attention_mask)
-        modulus_context = self.modulus_encoder(
-            input_ids,
-            parsed["modulus_digit_mask"],
-            parsed["modulus"],
-        )
+        if self.uses_ordered_modulus_digits:
+            modulus_context = self.modulus_encoder(
+                input_ids, parsed["modulus_digit_mask"]
+            )
+        else:
+            modulus_context = self.modulus_encoder(
+                input_ids,
+                parsed["modulus_digit_mask"],
+                parsed["modulus"],
+            )
         start_indices = parsed["starting_value"].clamp(0, MAX_VALUE - 1)
         if self.uses_geometry:
             landmarks, landmark_mask, coordinate_features = self.geometry.landmarks(
