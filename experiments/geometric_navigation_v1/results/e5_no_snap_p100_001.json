@@ -1,0 +1,104 @@
+{
+  "commit": "e03665350b128548de3b52db0586c87f75992612",
+  "dataset": "e5",
+  "gpu": "Tesla P100-PCIE-16GB",
+  "environment": {
+    "python": "3.12.13",
+    "torch": "2.10.0+cu126",
+    "cuda": "12.6",
+    "gpu_memory_bytes": 17059545088
+  },
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300,
+    "single_variable": "disable recurrent landmark-weighted state replacement while retaining the landmark distribution and supplied-label losses"
+  },
+  "comparison": {
+    "matched": true,
+    "identical_parameter_names_shapes_and_initial_values": true,
+    "full_test_exact_accuracy": 0.0975,
+    "no_snap_test_exact_accuracy": 0.014166666666666666,
+    "test_exact_delta": -0.08333333333333333,
+    "relative_accuracy_reduction": 0.8547008547008547,
+    "full_ood_t6_exact_accuracy": 0.10000000009934107,
+    "no_snap_ood_t6_exact_accuracy": 0.011666666666666667,
+    "ood_t6_exact_delta": -0.0883333334326744,
+    "full_seen_t1_exact_accuracy": 0.07421875,
+    "no_snap_seen_t1_exact_accuracy": 0.015625,
+    "full_ood_n_t1_exact_accuracy": 0.00390625,
+    "no_snap_ood_n_t1_exact_accuracy": 0.001953125,
+    "diagnostic_test_exact_delta": -0.15234375,
+    "diagnostic_landmark_accuracy_delta": -0.15234375,
+    "conclusion": "Recurrent landmark projection is necessary for full V1's E5 gain when landmark supervision is present. Removing only the projected-state replacement collapsed official test exact accuracy from 9.75% to 1.42%, despite identical parameters and 3.6% more optimizer steps. Together with the prior no-landmark-loss ablations, the evidence supports a snapping-supervision interaction rather than a Fourier-feature or auxiliary-classification-only explanation."
+  },
+  "completed_ablation_cells": {
+    "no_snap_no_landmark_loss_fourier": {
+      "test_exact_accuracy": 0.0125,
+      "source_experiment": "v1-e5-p100-001-fourier"
+    },
+    "snap_no_landmark_loss": {
+      "test_exact_accuracy": 0.014166666666666666,
+      "source_experiment": "v1-e5-p100-001-snap-no-landmark-loss"
+    },
+    "no_snap_landmark_loss": {
+      "test_exact_accuracy": 0.014166666666666666,
+      "source_experiment": "s1-e5-p100-001-no-snap-landmark-loss"
+    },
+    "snap_landmark_loss_full": {
+      "test_exact_accuracy": 0.0975,
+      "source_experiment": "s1-e5-p100-001-full"
+    },
+    "caveat": "The no-landmark-loss cells are historical matched runs from an earlier implementation commit; the decisive snapping-on versus snapping-off comparison with landmark loss is freshly matched at this commit."
+  },
+  "runs": {
+    "full": {
+      "test_correct_examples": 117,
+      "test_examples": 1200,
+      "test_exact_accuracy": 0.0975,
+      "ood_t6_correct_examples": 60,
+      "ood_t6_examples": 600,
+      "ood_t6_exact_accuracy": 0.10000000009934107,
+      "optimizer_steps": 4949,
+      "diagnostic_optimizer_steps": 5183,
+      "model_state_elements": 1176073,
+      "optimizer_state_elements": 2343985,
+      "trainable_parameters": 1171977,
+      "peak_gpu_memory_bytes": 1424057344,
+      "maximum_n_peak_allocated_bytes": 1962463232,
+      "diagnostic_exact_accuracy": 0.18359375,
+      "diagnostic_landmark_accuracy": 0.18359375,
+      "diagnostic_landmark_entropy": 0.8597895503044128,
+      "diagnostic_invalid_prediction_percentage": 0.78125,
+      "diagnostic_steps_per_second": 17.273838928466716,
+      "submission_bytes": 26481,
+      "submission_sha256": "3a1754b3d4d2289a510d025fff3ca017add90de7424b1b3ca1c5c4413270f854"
+    },
+    "no_snap_landmark_loss": {
+      "test_correct_examples": 17,
+      "test_examples": 1200,
+      "test_exact_accuracy": 0.014166666666666666,
+      "ood_t6_correct_examples": 7,
+      "ood_t6_examples": 600,
+      "ood_t6_exact_accuracy": 0.011666666666666667,
+      "optimizer_steps": 5126,
+      "diagnostic_optimizer_steps": 5411,
+      "model_state_elements": 1176073,
+      "optimizer_state_elements": 2343985,
+      "trainable_parameters": 1171977,
+      "peak_gpu_memory_bytes": 1306612736,
+      "diagnostic_exact_accuracy": 0.03125,
+      "diagnostic_landmark_accuracy": 0.03125,
+      "diagnostic_landmark_entropy": 0.8926672041416168,
+      "diagnostic_invalid_prediction_percentage": 3.125,
+      "diagnostic_steps_per_second": 18.035786813291594,
+      "submission_bytes": 26498,
+      "submission_sha256": "b3aca244740b4ea204adeabab5e486c80f8027d983385999e95f388924c0652c"
+    }
+  },
+  "artifacts": "experiments/geometric_navigation_v1/results/latest/no_snap_e5/artifacts"
+}
