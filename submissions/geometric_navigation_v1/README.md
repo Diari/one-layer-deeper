@@ -26,6 +26,10 @@ Available variants are:
 - `no_fourier_full`: the matched circular-geometry ablation; it keeps learned
   absolute landmarks, scalar `r/N` and `log(N)` coordinates, snapping, landmark
   CE, and entropy, while removing only the sine/cosine coordinate channels.
+- `no_snap_landmark_loss`: the missing 2x2 ablation; it keeps the full landmark
+  bank, similarity distribution, supplied-label landmark CE, and entropy loss,
+  but feeds the transition candidate directly into the next recurrent step
+  instead of replacing it with the landmark-weighted projection.
 - `relative_full`: identical to `full` except that landmarks contain no learned
   absolute residue embedding; this is the isolated V1.1 experiment.
 

@@ -60,6 +60,7 @@ VALID_VARIANTS = (
     "snap_no_landmark_loss",
     "full",
     "no_fourier_full",
+    "no_snap_landmark_loss",
     "relative_full",
 )
 
@@ -78,6 +79,7 @@ def _variant_flags(variant: str) -> tuple[bool, bool, bool, bool]:
         "snap_no_landmark_loss",
         "full",
         "no_fourier_full",
+        "no_snap_landmark_loss",
         "relative_full",
     )
     uses_snapping = variant in (
@@ -89,12 +91,14 @@ def _variant_flags(variant: str) -> tuple[bool, bool, bool, bool]:
     uses_landmark_loss = variant in (
         "full",
         "no_fourier_full",
+        "no_snap_landmark_loss",
         "relative_full",
     )
     uses_entropy_loss = variant in (
         "snap_no_landmark_loss",
         "full",
         "no_fourier_full",
+        "no_snap_landmark_loss",
         "relative_full",
     )
     return uses_geometry, uses_snapping, uses_landmark_loss, uses_entropy_loss
@@ -297,12 +301,12 @@ class DynamicLandmarkGeometry(nn.Module):
 
     def __init__(
         self,
-        uses_snapping: bool,
+        uses_landmark_distribution: bool,
         uses_absolute_residue_embedding: bool,
         uses_fourier_coordinates: bool,
     ) -> None:
         super().__init__()
-        self.uses_snapping = uses_snapping
+        self.uses_landmark_distribution = uses_landmark_distribution
         self.uses_absolute_residue_embedding = uses_absolute_residue_embedding
         self.uses_fourier_coordinates = uses_fourier_coordinates
         if uses_absolute_residue_embedding:
@@ -323,7 +327,7 @@ class DynamicLandmarkGeometry(nn.Module):
         self.register_buffer(
             "residue_values", torch.arange(MAX_VALUE, dtype=torch.float32)
         )
-        if uses_snapping:
+        if uses_landmark_distribution:
             self.candidate_norm = nn.LayerNorm(WIDTH)
             self.log_temperature = nn.Parameter(torch.tensor(-1.5))
 
@@ -350,16 +354,16 @@ class DynamicLandmarkGeometry(nn.Module):
         )
         return self.landmark_norm(values), valid_mask, coordinates
 
-    def project(
+    def landmark_distribution(
         self,
         candidate: Tensor,
         landmarks: Tensor,
         valid_mask: Tensor,
         *,
         sharpen: bool,
-    ) -> tuple[Tensor, Tensor]:
-        if not self.uses_snapping:
-            raise RuntimeError("projection is unavailable for this variant")
+    ) -> Tensor:
+        if not self.uses_landmark_distribution:
+            raise RuntimeError("landmark distribution is unavailable")
         normalized_candidate = F.normalize(self.candidate_norm(candidate), dim=-1)
         normalized_landmarks = F.normalize(landmarks, dim=-1)
         scores = torch.bmm(
@@ -372,7 +376,19 @@ class DynamicLandmarkGeometry(nn.Module):
         scaled_scores = scaled_scores.masked_fill(
             ~valid_mask, torch.finfo(scaled_scores.dtype).min
         )
-        probabilities = F.softmax(scaled_scores, dim=-1)
+        return F.softmax(scaled_scores, dim=-1)
+
+    def project(
+        self,
+        candidate: Tensor,
+        landmarks: Tensor,
+        valid_mask: Tensor,
+        *,
+        sharpen: bool,
+    ) -> tuple[Tensor, Tensor]:
+        probabilities = self.landmark_distribution(
+            candidate, landmarks, valid_mask, sharpen=sharpen
+        )
         projected = torch.bmm(probabilities.unsqueeze(1), landmarks).squeeze(1)
         return projected, probabilities
 
@@ -415,6 +431,11 @@ class VariableGeometricNavigationModel(nn.Module):
             self.uses_landmark_loss,
             self.uses_entropy_loss,
         ) = _variant_flags(variant)
+        self.uses_landmark_distribution = (
+            self.uses_snapping
+            or self.uses_landmark_loss
+            or self.uses_entropy_loss
+        )
         self.uses_absolute_residue_embedding = variant != "relative_full"
         self.uses_fourier_coordinates = variant != "no_fourier_full"
         self.uses_ordered_start_digits = variant in ("digit_x", "digit_xn")
@@ -425,7 +446,7 @@ class VariableGeometricNavigationModel(nn.Module):
             self.modulus_encoder = ModulusEncoder()
         if self.uses_geometry:
             self.geometry = DynamicLandmarkGeometry(
-                self.uses_snapping,
+                self.uses_landmark_distribution,
                 self.uses_absolute_residue_embedding,
                 self.uses_fourier_coordinates,
             )
@@ -494,7 +515,7 @@ class VariableGeometricNavigationModel(nn.Module):
 
         starting_state = self.start_norm(start_values + modulus_context)
         state = starting_state
-        if self.uses_snapping:
+        if self.uses_landmark_distribution:
             probabilities = F.one_hot(
                 start_indices, num_classes=MAX_VALUE
             ).to(dtype=state.dtype)
@@ -528,12 +549,23 @@ class VariableGeometricNavigationModel(nn.Module):
                 scattered_probabilities = probabilities.index_copy(
                     0, active_indices, active_probabilities
                 )
+            elif self.uses_landmark_distribution:
+                active_next = active_candidate
+                active_probabilities = self.geometry.landmark_distribution(
+                    active_candidate,
+                    landmarks[active],
+                    landmark_mask[active],
+                    sharpen=not self.training,
+                )
+                scattered_probabilities = probabilities.index_copy(
+                    0, active_indices, active_probabilities
+                )
             else:
                 active_next = active_candidate
                 scattered_probabilities = probabilities
             scattered_state = state.index_copy(0, active_indices, active_next)
             next_state = torch.where(active.unsqueeze(-1), scattered_state, state)
-            if self.uses_snapping:
+            if self.uses_landmark_distribution:
                 probabilities = torch.where(
                     active.unsqueeze(-1), scattered_probabilities, probabilities
                 )
@@ -602,6 +634,9 @@ def geometric_v1_token_training_loss(batch: TokenLossBatch) -> Tensor:
     answer_loss = F.cross_entropy(batch.logits[valid].float(), batch.labels[valid])
     auxiliary = batch.auxiliary
     _, uses_snapping, uses_landmark_loss, uses_entropy_loss = _variant_flags(VARIANT)
+    uses_landmark_distribution = (
+        uses_snapping or uses_landmark_loss or uses_entropy_loss
+    )
 
     reconstruction_logits = auxiliary["reconstruction_logits"].float()
     reconstruction_labels = auxiliary["starting_digit_labels"]
@@ -612,7 +647,7 @@ def geometric_v1_token_training_loss(batch: TokenLossBatch) -> Tensor:
     )
     total = ANSWER_WEIGHT * answer_loss + RECONSTRUCTION_WEIGHT * reconstruction_loss
 
-    if uses_snapping and (uses_landmark_loss or uses_entropy_loss):
+    if uses_landmark_distribution and (uses_landmark_loss or uses_entropy_loss):
         final_probabilities = auxiliary["final_landmark_probabilities"].float()
         if uses_landmark_loss:
             target_landmark, usable = _parse_supplied_answer(batch)

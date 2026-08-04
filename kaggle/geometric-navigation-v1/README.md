@@ -1,11 +1,11 @@
-# Kaggle P100 workflow for the V1 Fourier ablation
+# Kaggle P100 workflow for the V1 snapping ablation
 
 The script runs without notebook interaction. Its checked-in setting performs
-one isolated E5 comparison: unchanged `full` V1 against `no_fourier_full`.
-The candidate retains learned absolute landmarks, scalar `r/N` and `log(N)`
-coordinates, snapping, landmark CE, entropy, optimizer, seed, batches, and
-training duration. It removes only the periodic sine/cosine coordinate
-channels. The run stops after this matched pair.
+one isolated E5 comparison: unchanged `full` V1 against
+`no_snap_landmark_loss`. The candidate retains the full landmark bank, masked
+similarity distribution, landmark CE, entropy, optimizer, seed, batches, and
+training duration. It removes only the recurrent landmark-weighted state
+replacement. The run stops after this matched pair.
 
 The checked-in first run is already pinned to the tested implementation commit
 and the `diaris` Kaggle account. For another fork, edit exactly two fields:
@@ -14,9 +14,9 @@ and the `diaris` Kaggle account. For another fork, edit exactly two fields:
 2. Set `GIT_COMMIT` near the top of `geometric_navigation_v1.py` to a pushed
    commit containing V1. Do not use a branch name.
 
-Interpret an accuracy change smaller than normal run-to-run variation as no
-evidence that the present circular Fourier channels help. Repeat a material
-effect before making an architectural claim.
+This completes the landmark-supervision/snapping 2x2. If the candidate retains
+the full model's gain, landmark supervision rather than recurrent projection is
+the operative mechanism. Repeat a material effect before promotion.
 
 Install the Kaggle client and credentials locally (never print or commit the
 credential):
@@ -35,12 +35,12 @@ kaggle kernels push \
   -p kaggle/geometric-navigation-v1 \
   --accelerator NvidiaTeslaP100
 
-kaggle kernels status USERNAME/geometric-navigation-no-fourier-e5
+kaggle kernels status USERNAME/geometric-navigation-no-snap-e5
 
 mkdir -p experiments/geometric_navigation_v1/results/latest
 
 kaggle kernels output \
-  USERNAME/geometric-navigation-no-fourier-e5 \
+  USERNAME/geometric-navigation-no-snap-e5 \
   -p experiments/geometric_navigation_v1/results/latest \
   --force
 ```
@@ -49,7 +49,7 @@ The downloaded archive contains `artifacts/summary.json`, environment and test
 logs, the generated manifest, maximum-N memory preflight, and per-dataset,
 per-variant directories containing `result.json`, `diagnostics.json`, the exact
 standalone submission, and its SHA-256. E5 also has
-`full_vs_no_fourier_full.json`.
+`full_vs_no_snap_landmark_loss.json`.
 
 Internet is enabled only because the kernel clones the pinned repository and
 installs the P100-compatible PyTorch wheel. The kernel remains private and uses

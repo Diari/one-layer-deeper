@@ -19,7 +19,7 @@ GIT_COMMIT = "ed68d65155a469542f5f37556e80eb4fd622e45f"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
 START_AT_DATASET = "e5"
 STOP_AFTER_DATASET = "e5"
-PRIMARY_VARIANTS = ("full", "no_fourier_full")
+PRIMARY_VARIANTS = ("full", "no_snap_landmark_loss")
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 128
 TRAINING_SECONDS = 300
@@ -335,7 +335,7 @@ def main() -> None:
                 sys.executable,
                 "tools/make_geometric_v1_variant.py",
                 "--variant",
-                "digit_xn",
+                "full",
                 "--output",
                 str(memory_submission),
             ],
@@ -404,14 +404,14 @@ def main() -> None:
                 by_diagnostics[variant] = ARTIFACTS / run_summary["diagnostics"]
                 stages[f"{dataset}_{variant}"] = "passed"
             architecture_comparison = (
-                ARTIFACTS / dataset / "full_vs_no_fourier_full.json"
+                ARTIFACTS / dataset / "full_vs_no_snap_landmark_loss.json"
             )
             run(
                 [
                     sys.executable,
                     "tools/compare_experiments.py",
                     str(by_diagnostics["full"]),
-                    str(by_diagnostics["no_fourier_full"]),
+                    str(by_diagnostics["no_snap_landmark_loss"]),
                     "--output",
                     str(architecture_comparison),
                 ],
@@ -419,10 +419,10 @@ def main() -> None:
                 log=RUNNER_LOG,
                 append=True,
             )
-            stages[f"{dataset}_full_vs_no_fourier_full"] = "passed"
+            stages[f"{dataset}_full_vs_no_snap_landmark_loss"] = "passed"
             print(
-                "Fourier ablation complete; inspect the matched comparison "
-                "before selecting another experiment.",
+                "Snapping ablation complete; inspect the matched comparison "
+                "before selecting the next architecture.",
                 flush=True,
             )
             break

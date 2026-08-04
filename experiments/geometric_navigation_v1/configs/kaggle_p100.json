@@ -16,6 +16,6 @@
   "training_time_seconds": 300,
   "variants": [
     "full",
-    "no_fourier_full"
+    "no_snap_landmark_loss"
   ]
 }

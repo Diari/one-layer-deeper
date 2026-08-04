@@ -355,6 +355,73 @@ def test_no_fourier_full_removes_only_periodic_coordinate_channels(
         module.VARIANT = original_variant
 
 
+def test_no_snap_landmark_loss_removes_only_recurrent_projection(
+    module, model_spec
+):
+    full = build_model(module, model_spec, "full")
+    no_snap = build_model(module, model_spec, "no_snap_landmark_loss")
+
+    assert full.uses_snapping
+    assert full.uses_landmark_distribution
+    assert not no_snap.uses_snapping
+    assert no_snap.uses_landmark_distribution
+    assert no_snap.uses_landmark_loss
+    assert no_snap.uses_entropy_loss
+
+    full_parameters = dict(full.named_parameters())
+    no_snap_parameters = dict(no_snap.named_parameters())
+    assert full_parameters.keys() == no_snap_parameters.keys()
+    for name, parameter in full_parameters.items():
+        candidate = no_snap_parameters[name]
+        assert parameter.shape == candidate.shape, name
+        assert torch.equal(parameter, candidate), name
+
+    original_variant = module.VARIANT
+    module.VARIANT = "no_snap_landmark_loss"
+    try:
+        batch = prompt_batch(row(323, 5, 1, 25), row(899, 302, 4, 81))
+        transition_outputs = []
+        handle = no_snap.transition.register_forward_hook(
+            lambda layer, inputs, output: transition_outputs.append(output.detach())
+        )
+        distribution = no_snap.geometry.landmark_distribution
+        with (
+            mock.patch.object(
+                no_snap.geometry,
+                "project",
+                side_effect=AssertionError("no-snap variant projected its state"),
+            ),
+            mock.patch.object(
+                no_snap.geometry,
+                "landmark_distribution",
+                wraps=distribution,
+            ) as distribution_spy,
+        ):
+            _, auxiliary, token_batch = loss_batch(module, no_snap, batch)
+        handle.remove()
+
+        assert distribution_spy.call_count == module.MAX_TRAIN_T
+        assert len(transition_outputs) == module.MAX_TRAIN_T
+        assert torch.equal(auxiliary["state_history"][1], transition_outputs[0])
+        probabilities = auxiliary["final_landmark_probabilities"]
+        assert torch.allclose(
+            probabilities.sum(dim=1), torch.ones(probabilities.shape[0]), atol=1e-5
+        )
+        assert torch.count_nonzero(
+            probabilities.masked_select(~auxiliary["landmark_mask"])
+        ) == 0
+
+        loss = module.geometric_v1_token_training_loss(token_batch)
+        assert torch.isfinite(loss)
+        loss.backward()
+        for name, parameter in no_snap.named_parameters():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum() > 0, name
+    finally:
+        module.VARIANT = original_variant
+
+
 def test_digit_x_uses_ordered_digits_and_all_parameters_receive_gradients(
     module, model_spec
 ):
@@ -449,25 +516,33 @@ def test_control_has_no_geometric_parameters_and_no_unused_parameters(
 
 
 @pytest.mark.parametrize(
-    ("variant", "has_geometry", "has_snapping"),
+    ("variant", "has_geometry", "has_snapping", "has_distribution"),
     [
-        ("control", False, False),
-        ("digit_x", False, False),
-        ("digit_xn", False, False),
-        ("fourier", True, False),
-        ("snap_no_landmark_loss", True, True),
-        ("full", True, True),
-        ("no_fourier_full", True, True),
-        ("relative_full", True, True),
+        ("control", False, False, False),
+        ("digit_x", False, False, False),
+        ("digit_xn", False, False, False),
+        ("fourier", True, False, False),
+        ("snap_no_landmark_loss", True, True, True),
+        ("full", True, True, True),
+        ("no_fourier_full", True, True, True),
+        ("no_snap_landmark_loss", True, False, True),
+        ("relative_full", True, True, True),
     ],
 )
 def test_variants_conditionally_construct_modules(
-    module, model_spec, variant, has_geometry, has_snapping
+    module,
+    model_spec,
+    variant,
+    has_geometry,
+    has_snapping,
+    has_distribution,
 ):
     model = build_model(module, model_spec, variant)
     assert hasattr(model, "geometry") is has_geometry
+    assert model.uses_snapping is has_snapping
+    assert model.uses_landmark_distribution is has_distribution
     if has_geometry:
-        assert hasattr(model.geometry, "log_temperature") is has_snapping
+        assert hasattr(model.geometry, "log_temperature") is has_distribution
         assert hasattr(model.geometry, "residue_embedding") is (
             variant != "relative_full"
         )
