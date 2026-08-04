@@ -19,8 +19,7 @@ GIT_COMMIT = "f6fee3dccfffb93b65e8a3e3c09e94176bd62fef"
 EXPERIMENT_SEQUENCE = ("e1", "e2", "e5", "e3", "e4")
 START_AT_DATASET = "e5"
 STOP_AFTER_DATASET = "e5"
-PRIMARY_VARIANTS = ("control", "full", "digit_x", "digit_xn")
-RUN_FAILURE_ABLATIONS = False
+PRIMARY_VARIANTS = ("full", "no_fourier_full")
 BATCH_SIZE = 64
 EVAL_BATCH_SIZE = 128
 TRAINING_SECONDS = 300
@@ -398,40 +397,21 @@ def main() -> None:
                 append=True,
             )
             stages[f"{dataset}_data_manifest"] = "passed"
-            by_variant = {}
             by_diagnostics = {}
             for variant in PRIMARY_VARIANTS:
                 run_summary = run_variant(dataset, variant, manifest)
                 runs.append(run_summary)
-                by_variant[variant] = ARTIFACTS / run_summary["result"]
                 by_diagnostics[variant] = ARTIFACTS / run_summary["diagnostics"]
                 stages[f"{dataset}_{variant}"] = "passed"
-            gate_path = ARTIFACTS / dataset / "gate.json"
-            run(
-                [
-                    sys.executable,
-                    "tools/compare_geometric_v1_gate.py",
-                    "--dataset",
-                    dataset,
-                    "--control",
-                    str(by_variant["control"]),
-                    "--full",
-                    str(by_variant["digit_xn"]),
-                    "--output",
-                    str(gate_path),
-                ],
-                cwd=REPOSITORY,
-                log=RUNNER_LOG,
-                append=True,
+            architecture_comparison = (
+                ARTIFACTS / dataset / "full_vs_no_fourier_full.json"
             )
-            gate = json.loads(gate_path.read_text(encoding="utf-8"))
-            architecture_comparison = ARTIFACTS / dataset / "digit_x_vs_digit_xn.json"
             run(
                 [
                     sys.executable,
                     "tools/compare_experiments.py",
-                    str(by_diagnostics["digit_x"]),
-                    str(by_diagnostics["digit_xn"]),
+                    str(by_diagnostics["full"]),
+                    str(by_diagnostics["no_fourier_full"]),
                     "--output",
                     str(architecture_comparison),
                 ],
@@ -439,24 +419,13 @@ def main() -> None:
                 log=RUNNER_LOG,
                 append=True,
             )
-            stages[f"{dataset}_digit_x_vs_digit_xn"] = "passed"
-            primary_passed = gate["primary"]["passed"]
-            if dataset == "e5" and primary_passed:
-                stages[f"{dataset}_gate"] = "primary_passed_repeat_required"
-            else:
-                stages[f"{dataset}_gate"] = (
-                    "passed" if primary_passed else "failed_or_informational"
-                )
-            if primary_passed is False and RUN_FAILURE_ABLATIONS:
-                for variant in ("fourier", "snap_no_landmark_loss"):
-                    runs.append(run_variant(dataset, variant, manifest))
-                    stages[f"{dataset}_{variant}"] = "passed"
-            if primary_passed is False and dataset in ("e1", "e2", "e5"):
-                print(f"Gate {dataset} failed; stopping the sequence.", flush=True)
-                break
-            if dataset == "e5" and primary_passed:
-                print("E5 primary gate passed; repeat it before promotion.", flush=True)
-                break
+            stages[f"{dataset}_full_vs_no_fourier_full"] = "passed"
+            print(
+                "Fourier ablation complete; inspect the matched comparison "
+                "before selecting another experiment.",
+                flush=True,
+            )
+            break
 
         write_json(
             SUMMARY,

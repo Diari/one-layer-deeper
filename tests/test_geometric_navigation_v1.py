@@ -313,6 +313,48 @@ def test_relative_full_removes_only_absolute_residue_parameters(module, model_sp
         module.VARIANT = original_variant
 
 
+def test_no_fourier_full_removes_only_periodic_coordinate_channels(
+    module, model_spec
+):
+    full = build_model(module, model_spec, "full")
+    no_fourier = build_model(module, model_spec, "no_fourier_full")
+
+    assert full.uses_fourier_coordinates
+    assert full.geometry.uses_fourier_coordinates
+    assert not no_fourier.uses_fourier_coordinates
+    assert not no_fourier.geometry.uses_fourier_coordinates
+    assert full.geometry.coordinate_projection.in_features == 18
+    assert no_fourier.geometry.coordinate_projection.in_features == 2
+
+    full_parameters = dict(full.named_parameters())
+    no_fourier_parameters = dict(no_fourier.named_parameters())
+    assert full_parameters.keys() == no_fourier_parameters.keys()
+    for name, parameter in full_parameters.items():
+        candidate = no_fourier_parameters[name]
+        if name == "geometry.coordinate_projection.weight":
+            assert parameter.shape == (module.WIDTH, 18)
+            assert candidate.shape == (module.WIDTH, 2)
+            continue
+        assert parameter.shape == candidate.shape, name
+        assert torch.equal(parameter, candidate), name
+
+    original_variant = module.VARIANT
+    module.VARIANT = "no_fourier_full"
+    try:
+        batch = prompt_batch(row(323, 5, 2, 25), row(899, 302, 4, 81))
+        _, auxiliary, token_batch = loss_batch(module, no_fourier, batch)
+        assert auxiliary["landmark_coordinate_features"].shape[-1] == 18
+        loss = module.geometric_v1_token_training_loss(token_batch)
+        assert torch.isfinite(loss)
+        loss.backward()
+        for name, parameter in no_fourier.named_parameters():
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
+            assert parameter.grad.abs().sum() > 0, name
+    finally:
+        module.VARIANT = original_variant
+
+
 def test_digit_x_uses_ordered_digits_and_all_parameters_receive_gradients(
     module, model_spec
 ):
@@ -415,6 +457,7 @@ def test_control_has_no_geometric_parameters_and_no_unused_parameters(
         ("fourier", True, False),
         ("snap_no_landmark_loss", True, True),
         ("full", True, True),
+        ("no_fourier_full", True, True),
         ("relative_full", True, True),
     ],
 )

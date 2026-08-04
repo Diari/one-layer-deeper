@@ -15,7 +15,7 @@
   "seed": 74,
   "training_time_seconds": 300,
   "variants": [
-    "control",
-    "full"
+    "full",
+    "no_fourier_full"
   ]
 }

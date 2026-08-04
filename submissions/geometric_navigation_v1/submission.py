@@ -59,6 +59,7 @@ VALID_VARIANTS = (
     "fourier",
     "snap_no_landmark_loss",
     "full",
+    "no_fourier_full",
     "relative_full",
 )
 
@@ -76,13 +77,24 @@ def _variant_flags(variant: str) -> tuple[bool, bool, bool, bool]:
         "fourier",
         "snap_no_landmark_loss",
         "full",
+        "no_fourier_full",
         "relative_full",
     )
-    uses_snapping = variant in ("snap_no_landmark_loss", "full", "relative_full")
-    uses_landmark_loss = variant in ("full", "relative_full")
+    uses_snapping = variant in (
+        "snap_no_landmark_loss",
+        "full",
+        "no_fourier_full",
+        "relative_full",
+    )
+    uses_landmark_loss = variant in (
+        "full",
+        "no_fourier_full",
+        "relative_full",
+    )
     uses_entropy_loss = variant in (
         "snap_no_landmark_loss",
         "full",
+        "no_fourier_full",
         "relative_full",
     )
     return uses_geometry, uses_snapping, uses_landmark_loss, uses_entropy_loss
@@ -287,15 +299,25 @@ class DynamicLandmarkGeometry(nn.Module):
         self,
         uses_snapping: bool,
         uses_absolute_residue_embedding: bool,
+        uses_fourier_coordinates: bool,
     ) -> None:
         super().__init__()
         self.uses_snapping = uses_snapping
         self.uses_absolute_residue_embedding = uses_absolute_residue_embedding
+        self.uses_fourier_coordinates = uses_fourier_coordinates
         if uses_absolute_residue_embedding:
             self.residue_embedding = nn.Embedding(MAX_VALUE, WIDTH)
-        self.coordinate_projection = nn.Linear(
-            2 + 2 * NUM_FOURIER_FREQUENCIES, WIDTH, bias=False
+        coordinate_width = (
+            2 + 2 * NUM_FOURIER_FREQUENCIES
+            if uses_fourier_coordinates
+            else 2
         )
+        # Keep the RNG stream for every shared parameter identical across the
+        # matched Fourier/no-Fourier variants.  Only this projection differs.
+        with torch.random.fork_rng(devices=[]):
+            self.coordinate_projection = nn.Linear(
+                coordinate_width, WIDTH, bias=False
+            )
         self.modulus_projection = nn.Linear(WIDTH, WIDTH, bias=False)
         self.landmark_norm = nn.LayerNorm(WIDTH)
         self.register_buffer(
@@ -313,8 +335,11 @@ class DynamicLandmarkGeometry(nn.Module):
         coordinates = make_landmark_coordinate_features(
             self.residue_values, modulus
         ).to(dtype=modulus_context.dtype)
+        projected_coordinates = (
+            coordinates if self.uses_fourier_coordinates else coordinates[..., :2]
+        )
         values = (
-            self.coordinate_projection(coordinates)
+            self.coordinate_projection(projected_coordinates)
             + self.modulus_projection(modulus_context).unsqueeze(1)
         )
         if self.uses_absolute_residue_embedding:
@@ -391,6 +416,7 @@ class VariableGeometricNavigationModel(nn.Module):
             self.uses_entropy_loss,
         ) = _variant_flags(variant)
         self.uses_absolute_residue_embedding = variant != "relative_full"
+        self.uses_fourier_coordinates = variant != "no_fourier_full"
         self.uses_ordered_start_digits = variant in ("digit_x", "digit_xn")
         self.uses_ordered_modulus_digits = variant == "digit_xn"
         if self.uses_ordered_modulus_digits:
@@ -401,6 +427,7 @@ class VariableGeometricNavigationModel(nn.Module):
             self.geometry = DynamicLandmarkGeometry(
                 self.uses_snapping,
                 self.uses_absolute_residue_embedding,
+                self.uses_fourier_coordinates,
             )
         elif self.uses_ordered_start_digits:
             self.start_digit_encoder = OrderedDigitEncoder()

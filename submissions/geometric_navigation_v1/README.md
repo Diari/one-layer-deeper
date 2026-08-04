@@ -23,6 +23,9 @@ Available variants are:
 - `fourier`: dynamic Fourier landmark start state, no projection.
 - `snap_no_landmark_loss`: Fourier landmarks and snapping, no landmark CE.
 - `full`: Fourier landmarks, snapping, landmark CE, and entropy regularization.
+- `no_fourier_full`: the matched circular-geometry ablation; it keeps learned
+  absolute landmarks, scalar `r/N` and `log(N)` coordinates, snapping, landmark
+  CE, and entropy, while removing only the sine/cosine coordinate channels.
 - `relative_full`: identical to `full` except that landmarks contain no learned
   absolute residue embedding; this is the isolated V1.1 experiment.
 

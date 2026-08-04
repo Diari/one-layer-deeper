@@ -17,6 +17,7 @@ VARIANTS = (
     "fourier",
     "snap_no_landmark_loss",
     "full",
+    "no_fourier_full",
     "relative_full",
 )
 SOURCE_LINE = 'VARIANT = "full"'
