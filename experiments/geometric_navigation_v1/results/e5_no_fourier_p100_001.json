@@ -1,0 +1,80 @@
+{
+  "commit": "ed68d65155a469542f5f37556e80eb4fd622e45f",
+  "dataset": "e5",
+  "gpu": "Tesla P100-PCIE-16GB",
+  "environment": {
+    "python": "3.12.13",
+    "torch": "2.10.0+cu126",
+    "cuda": "12.6",
+    "gpu_memory_bytes": 17059545088
+  },
+  "config": {
+    "amp": false,
+    "batch_size": 64,
+    "compile": false,
+    "dtype": "float32",
+    "eval_batch_size": 128,
+    "seed": 74,
+    "training_time_seconds": 300,
+    "single_variable": "remove the eight-frequency sine/cosine landmark channels"
+  },
+  "comparison": {
+    "matched": true,
+    "full_test_exact_accuracy": 0.0925,
+    "no_fourier_test_exact_accuracy": 0.09166666669150193,
+    "test_exact_delta": -0.0008333333084980669,
+    "full_ood_t6_exact_accuracy": 0.1133333334326744,
+    "no_fourier_ood_t6_exact_accuracy": 0.12,
+    "ood_t6_exact_delta": 0.006666666567325599,
+    "full_ood_n_t1_exact_accuracy": 0.00390625,
+    "no_fourier_ood_n_t1_exact_accuracy": 0.00390625,
+    "diagnostic_test_exact_delta": -0.01171875,
+    "diagnostic_entropy_delta": -0.074497677385807,
+    "conclusion": "Fourier channels did not provide a material E5 exact-accuracy advantage. The one-example evaluator difference is not evidence of a useful effect. Removing them lowered landmark entropy and slightly improved the evaluator OOD T=6 split, but did not improve OOD-N T=1."
+  },
+  "runs": {
+    "full": {
+      "test_correct_examples": 111,
+      "test_examples": 1200,
+      "test_exact_accuracy": 0.0925,
+      "ood_t6_correct_examples": 68,
+      "ood_t6_examples": 600,
+      "ood_t6_exact_accuracy": 0.1133333334326744,
+      "optimizer_steps": 4987,
+      "diagnostic_optimizer_steps": 5199,
+      "model_state_elements": 1176073,
+      "optimizer_state_elements": 2343985,
+      "trainable_parameters": 1171977,
+      "peak_gpu_memory_bytes": 1424057344,
+      "diagnostic_exact_accuracy": 0.185546875,
+      "diagnostic_landmark_accuracy": 0.18359375,
+      "diagnostic_landmark_entropy": 0.8673885464668274,
+      "diagnostic_invalid_prediction_percentage": 0.78125,
+      "diagnostic_steps_per_second": 17.329597097265243,
+      "submission_bytes": 25176,
+      "submission_sha256": "8fbc8f08fb6f1820f56c6c3f4d58cdb051fa7f10cffe944cf0d02489372eb3bb"
+    },
+    "no_fourier_full": {
+      "test_correct_examples": 110,
+      "test_examples": 1200,
+      "test_exact_accuracy": 0.09166666669150193,
+      "ood_t6_correct_examples": 72,
+      "ood_t6_examples": 600,
+      "ood_t6_exact_accuracy": 0.12,
+      "optimizer_steps": 4955,
+      "diagnostic_optimizer_steps": 5197,
+      "model_state_elements": 1174025,
+      "optimizer_state_elements": 2339889,
+      "trainable_parameters": 1169929,
+      "peak_gpu_memory_bytes": 1424032768,
+      "diagnostic_exact_accuracy": 0.173828125,
+      "diagnostic_landmark_accuracy": 0.177734375,
+      "diagnostic_landmark_entropy": 0.7928908690810204,
+      "diagnostic_invalid_prediction_percentage": 0.5859375,
+      "diagnostic_steps_per_second": 17.320353750520525,
+      "submission_bytes": 25187,
+      "submission_sha256": "1205e5ce204d0f40ff8f59666ef1fbc46365a97f7b4c4f08e1fc6a5bdf60a6d3"
+    }
+  },
+  "artifacts": "experiments/geometric_navigation_v1/results/latest/no_fourier_e5/artifacts"
+}
